@@ -1,3 +1,8 @@
 <resources>
     <string name="app_name">POPcorn</string>
+    <string name="placeholder_search">Search POPcorn</string>
+    <string name="movies">Movies</string>
+    <string name="Dashboard">Dashboard</string>
+    <string name="bottom_navigation_home">Home</string>
+    <string name="bottom_navigation_profile">Profile</string>
 </resources>
