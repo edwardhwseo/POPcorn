@@ -24,7 +24,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.ui.res.stringResource
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material.icons.Icons
@@ -35,11 +34,16 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyHorizontalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -95,6 +99,8 @@ fun Greeting(name: String, modifier: Modifier = Modifier){
     }
 }
 
+// SearchBar
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SearchBar(
@@ -128,6 +134,8 @@ fun SearchBarPreview() {
     POPcornTheme { SearchBar(Modifier.padding(8.dp)) }
 }
 
+// POPcorn Element
+
 @Composable
 fun POPcornElement(
     @DrawableRes drawable: Int,
@@ -154,6 +162,20 @@ fun POPcornElement(
     }
 }
 
+@Preview(showBackground = true, backgroundColor = 0xFFF5F0EE)
+@Composable
+fun POPcornElementPreview() {
+    POPcornTheme {
+        POPcornElement(
+            text = R.string.movies,
+            drawable = R.drawable.movie,
+            modifier = Modifier.padding(8.dp)
+        )
+    }
+}
+
+// Dashboard Row
+
 @Composable
 fun DashboardRow(
     modifier: Modifier = Modifier
@@ -169,17 +191,7 @@ fun DashboardRow(
     }
 }
 
-@Preview(showBackground = true, backgroundColor = 0xFFF5F0EE)
-@Composable
-fun POPcornElementPreview() {
-    POPcornTheme {
-        POPcornElement(
-            text = R.string.movies,
-            drawable = R.drawable.movie,
-            modifier = Modifier.padding(8.dp)
-        )
-    }
-}
+// HomeSection
 
 @Composable
 fun HomeSection(
@@ -209,6 +221,69 @@ fun HomeSectionPreview() {
     }
 }
 
+// Favourites Collection
+
+@Composable
+fun FavouriteCollectionCard(
+    @DrawableRes drawable: Int,
+    @StringRes text: Int,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        shape = MaterialTheme.shapes.medium,
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        modifier = modifier
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.width(255.dp)
+        ) {
+            Image(
+                painter = painterResource(drawable),
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.size(80.dp)
+            )
+            Text(
+                text = stringResource(text),
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.padding(horizontal = 16.dp)
+            )
+        }
+    }
+}
+
+@Preview(showBackground = true, backgroundColor = 0xFFF5F0EE)
+@Composable
+fun FavouriteCollectionCardPreview() {
+    POPcornTheme {
+        FavouriteCollectionCard(
+            text = R.string.fc1_blade_runner,
+            drawable = R.drawable.blade_runner,
+            modifier = Modifier.padding(8.dp)
+        )
+    }
+}
+
+@Composable
+fun FavouriteCollectionsGrid(
+    modifier: Modifier = Modifier
+) {
+    LazyHorizontalGrid(
+        rows = GridCells.Fixed(2),
+        contentPadding = PaddingValues(horizontal = 16.dp),
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        modifier = modifier.height(168.dp)
+    ) {
+        items(favouriteCollectionsData) { item ->
+            FavouriteCollectionCard(item.drawable, item.text, Modifier.height(80.dp))
+        }
+    }
+}
+
+// HomeScreen
+
 @Composable
 fun HomeScreen(modifier: Modifier = Modifier) {
     Column(
@@ -220,26 +295,19 @@ fun HomeScreen(modifier: Modifier = Modifier) {
         HomeSection(title = R.string.Dashboard) {
             DashboardRow()
         }
-//        HomeSection(title = R.string.favorite_collections) {
-//            FavoriteCollectionsGrid()
-//        }
+        HomeSection(title = R.string.favourite_collection) {
+            FavouriteCollectionsGrid()
+        }
+
         Spacer(Modifier.height(16.dp))
     }
 }
 
 @Preview(showBackground = true, backgroundColor = 0xFFF5F0EE, heightDp = 180)
 @Composable
-fun ScreenContentPreview() {
+fun HomeScreenPreview() {
     POPcornTheme { HomeScreen() }
 }
-
-data class DashboardData(@DrawableRes val drawable: Int, @StringRes val text: Int)
-
-val dashboardData = listOf(
-    DashboardData(R.drawable.movie, R.string.movies),
-    // DashboardData(R.drawable.your_drawable2, R.string.your_text2),
-    // Add more items as needed
-)
 
 // Bottom Navigation
 @Composable
@@ -283,6 +351,8 @@ fun POPcornBottomNavigationPreview() {
     POPcornTheme { POPcornBottomNavigation(Modifier.padding(top = 24.dp)) }
 }
 
+// POPcorn Portrait
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun POPcornPortrait() {
@@ -300,3 +370,25 @@ fun POPcornPortrait() {
 fun POPcornPortraitPreview() {
     POPcornPortrait()
 }
+
+// Dashboard Items
+data class DashboardData(@DrawableRes val drawable: Int, @StringRes val text: Int)
+
+val dashboardData = listOf(
+    DashboardData(R.drawable.movie, R.string.movies),
+    DashboardData(R.drawable.social, R.string.social)
+)
+
+// Favourites Collection Data
+
+private val favouriteCollectionsData = listOf(
+    R.drawable.blade_runner to R.string.fc1_blade_runner,
+    R.drawable.meg to R.string.fc2_meg,
+    R.drawable.avengers to R.string.fc3_avengers,
+    R.drawable.dark_knight to R.string.fc4_dark_knight
+).map { DrawableStringPair(it.first, it.second) }
+
+private data class DrawableStringPair(
+    @DrawableRes val drawable: Int,
+    @StringRes val text: Int
+)
