@@ -383,7 +383,9 @@ val dashboardData = listOf(
 
 private val favouriteCollectionsData = listOf(
     R.drawable.blade_runner to R.string.fc1_blade_runner,
-    R.drawable.meg to R.string.fc2_meg
+    R.drawable.meg to R.string.fc2_meg,
+    R.drawable.avengers to R.string.fc3_avengers,
+    R.drawable.dark_knight to R.string.fc4_dark_knight
 ).map { DrawableStringPair(it.first, it.second) }
 
 private data class DrawableStringPair(

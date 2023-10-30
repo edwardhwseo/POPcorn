@@ -7,6 +7,8 @@
     <string name="favourite_collection">Favourite Movies</string>
     <string name="fc1_blade_runner">Blade Runner</string>
     <string name="fc2_meg">The Meg</string>
+    <string name="fc3_avengers">Avengers: Endgame</string>
+    <string name="fc4_dark_knight">The Dark Knight</string>
     <string name="bottom_navigation_home">Home</string>
     <string name="bottom_navigation_profile">Profile</string>
 </resources>
