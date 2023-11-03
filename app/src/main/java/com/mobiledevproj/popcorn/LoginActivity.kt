@@ -13,6 +13,7 @@ class LoginActivity : ComponentActivity() {
 
         setContent{
             POPcornTheme {
+                getMovies()
                 LoginForm()
             }
         }
