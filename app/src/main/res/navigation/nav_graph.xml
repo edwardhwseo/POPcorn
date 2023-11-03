@@ -1,0 +1,29 @@
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/nav_graph"
+    app:startDestination="@id/popcornPortrait">
+
+    <fragment
+        android:id="@+id/moviePage"
+        android:name="com.mobiledevproj.popcorn.MovieFragment"
+        android:label="MovieFragment" />
+
+    <fragment
+        android:id="@+id/socialPage"
+        android:name="com.mobiledevproj.popcorn.SocialFragment"
+        android:label="SocialFragment" />
+
+    <fragment
+        android:id="@+id/profilePage"
+        android:name="com.mobiledevproj.popcorn.ProfileFragment"
+        android:label="ProfileFragment" />
+
+    <destination
+        android:id="@+id/popcornPortrait"
+        app:popEnterAnim="@anim/nav_default_enter_anim"
+        app:popExitAnim="@anim/nav_default_exit_anim"
+        app:popUpTo="@+id/popcornPortrait"
+        app:popUpToInclusive="true"
+        tools:targetClass="com.mobiledevproj.popcorn.POPcornPortrait" />
+</navigation>

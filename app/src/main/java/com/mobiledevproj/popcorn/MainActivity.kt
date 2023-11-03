@@ -1,6 +1,9 @@
 package com.mobiledevproj.popcorn
 
 import android.os.Bundle
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.Image
@@ -33,6 +36,7 @@ import androidx.compose.foundation.layout.paddingFromBaseline
 import androidx.compose.ui.layout.ContentScale
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.shape.CircleShape
@@ -51,13 +55,76 @@ import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material3.Button
 import androidx.compose.material3.Scaffold
+import androidx.navigation.NavHostController
+import androidx.navigation.compose.rememberNavController
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            POPcornPortrait()
+            val navController = rememberNavController()
+            AppNavigator(navController)
+        }
+    }
+}
+
+@Composable
+fun MoviePage(navController: NavHostController) {
+    Column {
+        Button(onClick = { navController.popBackStack() }) {
+            Text("Back to Home")
+        }
+
+        Text("All Movies")
+
+        POPcornBottomNavigation(navController)
+    }
+}
+
+@Composable
+fun SocialPage(navController: NavHostController) {
+    Column{
+        Button(onClick = { navController.popBackStack() }) {
+            Text("Back to Home")
+        }
+
+        Text("Social Page")
+
+        POPcornBottomNavigation(navController)
+    }
+}
+
+@Composable
+fun ProfilePage(navController: NavHostController) {
+    Column {
+        Button(onClick = { navController.popBackStack() }) {
+            Text("Back to Home")
+        }
+
+        Text("Profile Page")
+
+        POPcornBottomNavigation(navController)
+    }
+}
+
+@Composable
+fun AppNavigator(navController: NavHostController) {
+    NavHost(navController, startDestination = "popcornPortrait") {
+        composable("popcornPortrait") {
+            POPcornPortrait(navController)
+        }
+        composable("moviePage") {
+            MoviePage(navController)
+        }
+        composable("socialPage"){
+            SocialPage(navController)
+        }
+        composable("profilePage") {
+            ProfilePage(navController)
         }
     }
 }
@@ -140,10 +207,14 @@ fun SearchBarPreview() {
 fun POPcornElement(
     @DrawableRes drawable: Int,
     @StringRes text: Int,
+    destination: String,
+    navController: NavHostController,
     modifier: Modifier = Modifier
 ) {
     Column(
-        modifier = modifier,
+        modifier = modifier.clickable {
+            navController.navigate(destination)
+        },
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Image(
@@ -165,10 +236,13 @@ fun POPcornElement(
 @Preview(showBackground = true, backgroundColor = 0xFFF5F0EE)
 @Composable
 fun POPcornElementPreview() {
+    val navController = rememberNavController()
     POPcornTheme {
         POPcornElement(
             text = R.string.movies,
             drawable = R.drawable.movie,
+            navController = navController,
+            destination = "moviePage",
             modifier = Modifier.padding(8.dp)
         )
     }
@@ -177,16 +251,15 @@ fun POPcornElementPreview() {
 // Dashboard Row
 
 @Composable
-fun DashboardRow(
-    modifier: Modifier = Modifier
-) {
+fun DashboardRow(navController: NavHostController, modifier: Modifier = Modifier) {
     LazyRow(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         contentPadding = PaddingValues(horizontal = 16.dp),
         modifier = modifier
     ) {
         items(dashboardData) { item ->
-            POPcornElement(item.drawable, item.text)
+            val destination = if (item.text == R.string.movies) "moviePage" else "socialPage"
+            POPcornElement(item.drawable, item.text, destination, navController)
         }
     }
 }
@@ -214,9 +287,10 @@ fun HomeSection(
 @Preview(showBackground = true, backgroundColor = 0xFFF5F0EE)
 @Composable
 fun HomeSectionPreview() {
+    val navController = rememberNavController()
     POPcornTheme {
         HomeSection(R.string.Dashboard) {
-            DashboardRow()
+            DashboardRow(navController = navController)
         }
     }
 }
@@ -285,7 +359,7 @@ fun FavouriteCollectionsGrid(
 // HomeScreen
 
 @Composable
-fun HomeScreen(modifier: Modifier = Modifier) {
+fun HomeScreen(navController: NavHostController, modifier: Modifier = Modifier) {
     Column(
         modifier
             .verticalScroll(rememberScrollState())
@@ -293,7 +367,7 @@ fun HomeScreen(modifier: Modifier = Modifier) {
         Spacer(Modifier.height(16.dp))
         SearchBar(Modifier.padding(horizontal = 16.dp))
         HomeSection(title = R.string.Dashboard) {
-            DashboardRow()
+            DashboardRow(navController)
         }
         HomeSection(title = R.string.favourite_collection) {
             FavouriteCollectionsGrid()
@@ -306,12 +380,13 @@ fun HomeScreen(modifier: Modifier = Modifier) {
 @Preview(showBackground = true, backgroundColor = 0xFFF5F0EE, heightDp = 180)
 @Composable
 fun HomeScreenPreview() {
-    POPcornTheme { HomeScreen() }
+    val navController = rememberNavController()
+    POPcornTheme { HomeScreen(navController) }
 }
 
 // Bottom Navigation
 @Composable
-private fun POPcornBottomNavigation(modifier: Modifier = Modifier) {
+private fun POPcornBottomNavigation(navController: NavHostController, modifier: Modifier = Modifier) {
     NavigationBar(
         containerColor = MaterialTheme.colorScheme.surfaceVariant,
         modifier = modifier
@@ -327,7 +402,9 @@ private fun POPcornBottomNavigation(modifier: Modifier = Modifier) {
                 Text(stringResource(R.string.bottom_navigation_home))
             },
             selected = true,
-            onClick = {}
+            onClick = {
+                navController.navigate("popcornPortrait")
+            }
         )
         NavigationBarItem(
             icon = {
@@ -340,7 +417,9 @@ private fun POPcornBottomNavigation(modifier: Modifier = Modifier) {
                 Text(stringResource(R.string.bottom_navigation_profile))
             },
             selected = false,
-            onClick = {}
+            onClick = {
+                navController.navigate("profilePage")
+            }
         )
     }
 }
@@ -348,19 +427,20 @@ private fun POPcornBottomNavigation(modifier: Modifier = Modifier) {
 @Preview(showBackground = true, backgroundColor = 0xFFF5F0EE)
 @Composable
 fun POPcornBottomNavigationPreview() {
-    POPcornTheme { POPcornBottomNavigation(Modifier.padding(top = 24.dp)) }
+    val navController = rememberNavController()
+    POPcornTheme { POPcornBottomNavigation(navController, Modifier.padding(top = 24.dp)) }
 }
 
 // POPcorn Portrait
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun POPcornPortrait() {
+fun POPcornPortrait(navController: NavHostController) {
     POPcornTheme {
         Scaffold(
-            bottomBar = { POPcornBottomNavigation() }
+            bottomBar = { POPcornBottomNavigation(navController) }
         ) { padding ->
-            HomeScreen(Modifier.padding(padding))
+            HomeScreen(navController)
         }
     }
 }
@@ -368,7 +448,8 @@ fun POPcornPortrait() {
 @Preview(widthDp = 360, heightDp = 640)
 @Composable
 fun POPcornPortraitPreview() {
-    POPcornPortrait()
+    val navController = rememberNavController()
+    POPcornPortrait(navController)
 }
 
 // Dashboard Items
