@@ -17,6 +17,6 @@ data class MoviesItem(
     @SerializedName("rating")
     val rating: Number,
     @SerializedName("year")
-    val year: Number
+    val year: String
 )
 

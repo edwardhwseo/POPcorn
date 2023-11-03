@@ -74,6 +74,11 @@ import okhttp3.Callback
 import okhttp3.Response
 import java.io.IOException
 import android.util.Log
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.material3.Card
+import androidx.compose.ui.tooling.preview.PreviewParameter
+import androidx.compose.ui.unit.Dp
+import org.json.JSONArray
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -142,20 +147,35 @@ fun getMovies() {
             override fun onResponse(call: Call, response: Response) {
                 response.use {
                     val jsonString = response.body!!.string()
-                    val jsonObject = JSONObject(jsonString)
-                    if (jsonString != null) {
+                    val jsonArray = JSONArray(jsonString)
+                    val movies = Movies()
+
+                    for(i in 0 until jsonArray.length()) {
+                        val jsonObject = jsonArray.getJSONObject(i)
                         val id = jsonObject.getString("id")
                         val title = jsonObject.getString("title")
                         val description = jsonObject.getString("description")
                         val link = jsonObject.getString("link")
                         val genre = jsonObject.getString("genre")
-                        val images = jsonObject.getString("images")
+                        // get first image in the array of images
+                        val images = jsonObject.getJSONArray("images").getJSONArray(0).getString(1)
                         val rating = jsonObject.getDouble("rating")
-                        val year = jsonObject.getInt("year")
+                        val year = jsonObject.getString("year")
 
                         val movieItem = MoviesItem(id, title, description, link, genre, images, rating, year)
-
-                        Log.d("id", movieItem.id)
+                        movies.add(movieItem)
+                    }
+                    // check log cat values are there
+                    for (movie in movies) {
+                        Log.d("movieId","${movie.id}")
+                        Log.d("movieTitle","${movie.title}")
+                        Log.d("movieDescription", "${movie.description}")
+                        Log.d("movieGenre", "${movie.genre}")
+                        /*
+                        * Glide.with(this)
+                            .load(movie.images)
+                            .into(imageView) idk what image view to put it in
+                             */
                     }
                 }
             }
@@ -270,7 +290,6 @@ fun DashboardRow(
 }
 
 // HomeSection
-
 @Composable
 fun HomeSection(
     @StringRes title: Int,
@@ -448,6 +467,7 @@ fun POPcornPortrait() {
 fun POPcornPortraitPreview() {
     POPcornPortrait()
 }
+
 
 // Dashboard Items
 data class DashboardData(@DrawableRes val drawable: Int, @StringRes val text: Int)
