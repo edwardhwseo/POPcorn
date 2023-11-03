@@ -61,6 +61,7 @@ dependencies {
     implementation("androidx.navigation:navigation-fragment-ktx:2.7.5")
     implementation("androidx.navigation:navigation-ui-ktx:2.7.5")
     implementation("androidx.navigation:navigation-compose:2.7.5")
+    implementation("androidx.navigation:navigation-runtime-ktx:2.7.5")
     //implementation("androidx.navigation:navigation-fragment:$2.4.0-alpha02")
     //implementation("androidx.navigation:navigation-ui:$2.4.0-alpha02")
     testImplementation("junit:junit:4.13.2")
