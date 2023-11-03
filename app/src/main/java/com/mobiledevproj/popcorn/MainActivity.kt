@@ -37,6 +37,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.shape.CircleShape
@@ -72,44 +73,98 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+// Movie Page
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MoviePage(navController: NavHostController) {
-    Column {
-        Button(onClick = { navController.popBackStack() }) {
-            Text("Back to Home")
+    POPcornTheme {
+        Scaffold(
+            bottomBar = { POPcornBottomNavigation(navController) }
+        ) { padding ->
+            Column{
+                Spacer(Modifier.height(16.dp))
+                SearchBar(Modifier.padding(horizontal = 16.dp))
+                Spacer(Modifier.height(16.dp))
+                Button(onClick = { navController.popBackStack() }, Modifier.padding(horizontal = 16.dp)) {
+                    Text("Back")
+                }
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ){
+                        Text("All Movies")
+                }
+            }
         }
-
-        Text("All Movies")
-
-        POPcornBottomNavigation(navController)
     }
 }
 
+// Social Page
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SocialPage(navController: NavHostController) {
-    Column{
-        Button(onClick = { navController.popBackStack() }) {
-            Text("Back to Home")
+    POPcornTheme {
+        Scaffold(
+            bottomBar = { POPcornBottomNavigation(navController) }
+        ) { padding ->
+            Column {
+                Spacer(Modifier.height(16.dp))
+                Button(onClick = { navController.popBackStack() }, Modifier.padding(horizontal = 16.dp)) {
+                    Text("Back")
+                }
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column {
+                        Text("Social Page")
+                    }
+                }
+            }
         }
-
-        Text("Social Page")
-
-        POPcornBottomNavigation(navController)
     }
 }
 
+// Profile Page
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfilePage(navController: NavHostController) {
-    Column {
-        Button(onClick = { navController.popBackStack() }) {
-            Text("Back to Home")
+    POPcornTheme {
+        Scaffold(
+            bottomBar = { POPcornBottomNavigation(navController) }
+        ) { padding ->
+            Column {
+                Spacer(Modifier.height(16.dp))
+                Button(onClick = { navController.popBackStack() }, Modifier.padding(horizontal = 16.dp)) {
+                    Text("Back")
+                }
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        verticalArrangement = Arrangement.Center,
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text("Profile Page")
+                        Image(
+                            painter = painterResource(id = R.drawable.christian_bale),
+                            contentDescription = "Profile Icon",
+                            modifier = Modifier
+                                .size(128.dp)
+                                .clip(CircleShape)
+                        )
+                    }
+                }
+            }
         }
-
-        Text("Profile Page")
-
-        POPcornBottomNavigation(navController)
     }
 }
+
+// App Navigator
 
 @Composable
 fun AppNavigator(navController: NavHostController) {
