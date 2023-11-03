@@ -77,24 +77,38 @@ import okhttp3.Callback
 import okhttp3.Response
 import java.io.IOException
 import android.util.Log
+import androidx.compose.foundation.background
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.core.os.bundleOf
 import org.json.JSONArray
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
             val navController = rememberNavController()
+            val moviesViewModel: MoviesViewModel = viewModel()
+
+            getMovies { movies ->
+                moviesViewModel.movies = movies
+                navController.navigate("moviePage")
+            }
+
             AppNavigator(navController)
         }
     }
 }
 
-// Movie Page
 
+
+// Movie Page
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MoviePage(navController: NavHostController) {
-    getMovies()
+fun MoviePage(navController: NavHostController, moviesViewModel: MoviesViewModel) {
+    val movies = moviesViewModel.movies ?: emptyList()
+
     POPcornTheme {
         Scaffold(
             bottomBar = { POPcornBottomNavigation(navController) }
@@ -106,16 +120,56 @@ fun MoviePage(navController: NavHostController) {
                 Button(onClick = { navController.popBackStack() }, Modifier.padding(horizontal = 16.dp)) {
                     Text("Back")
                 }
-                Box(
+                LazyColumn(
                     modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ){
-                        Text("All Movies")
+                    contentPadding = PaddingValues(horizontal = 16.dp)
+                ) {
+                    items(movies) { movie ->
+                        MovieItem(movie)
+                    }
                 }
             }
         }
     }
 }
+
+
+@Composable
+fun LazyMovieList(movies: List<MoviesItem>) {
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 16.dp),
+        contentPadding = PaddingValues(vertical = 16.dp)
+    ) {
+        items(movies) { movie ->
+            MovieItem(movie)
+            Spacer(modifier = Modifier.height(16.dp)) // Add some spacing between items
+        }
+    }
+}
+
+@Composable
+fun MovieItem(movie: MoviesItem) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(200.dp)
+            .background(Color.Gray)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(text = movie.title, color = Color.White)
+            Text(text = movie.genre, color = Color.White)
+            Text(text = movie.description, color = Color.White)
+        }
+    }
+}
+
 
 // Social Page
 
@@ -185,14 +239,16 @@ fun ProfilePage(navController: NavHostController) {
 
 @Composable
 fun AppNavigator(navController: NavHostController) {
+    val moviesViewModel: MoviesViewModel = viewModel() // Retrieve the ViewModel
+
     NavHost(navController, startDestination = "popcornPortrait") {
         composable("popcornPortrait") {
             POPcornPortrait(navController)
         }
         composable("moviePage") {
-            MoviePage(navController)
+            MoviePage(navController, moviesViewModel)
         }
-        composable("socialPage"){
+        composable("socialPage") {
             SocialPage(navController)
         }
         composable("profilePage") {
@@ -200,6 +256,7 @@ fun AppNavigator(navController: NavHostController) {
         }
     }
 }
+
 
 @Preview(showBackground = true, device = "id:Nexus One", showSystemUi = true)
 @Composable
@@ -238,7 +295,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier){
     }
 }
 
-fun getMovies() {
+fun getMovies(callback: (Movies) -> Unit) {
     GlobalScope.launch(Dispatchers.IO) {
         val client = OkHttpClient()
 
@@ -248,8 +305,6 @@ fun getMovies() {
             .addHeader("X-RapidAPI-Key", "980648891cmsh4d49ee8f2888ad9p1dc229jsn2b550bba1d65")
             .addHeader("X-RapidAPI-Host", "imdb-top-100-movies1.p.rapidapi.com")
             .build()
-
-//        val response = client.newCall(request).execute().body()?.string()
 
         client.newCall(request).enqueue(object : Callback {
             override fun onFailure(call: Call, e: IOException) {
@@ -262,14 +317,13 @@ fun getMovies() {
                     val jsonArray = JSONArray(jsonString)
                     val movies = Movies()
 
-                    for(i in 0 until jsonArray.length()) {
+                    for (i in 0 until jsonArray.length()) {
                         val jsonObject = jsonArray.getJSONObject(i)
                         val id = jsonObject.getString("id")
                         val title = jsonObject.getString("title")
                         val description = jsonObject.getString("description")
                         val link = jsonObject.getString("link")
                         val genre = jsonObject.getString("genre")
-                        // get first image in the array of images
                         val images = jsonObject.getJSONArray("images").getJSONArray(0).getString(1)
                         val rating = jsonObject.getDouble("rating")
                         val year = jsonObject.getString("year")
@@ -277,23 +331,16 @@ fun getMovies() {
                         val movieItem = MoviesItem(id, title, description, link, genre, images, rating, year)
                         movies.add(movieItem)
                     }
-                    // check log cat values are there
-                    for (movie in movies) {
-                        Log.d("movieId","${movie.id}")
-                        Log.d("movieTitle","${movie.title}")
-                        Log.d("movieDescription", "${movie.description}")
-                        Log.d("movieGenre", "${movie.genre}")
-                        /*
-                        * Glide.with(this)
-                            .load(movie.images)
-                            .into(imageView) idk what image view to put it in
-                             */
+                    GlobalScope.launch(Dispatchers.Main) {
+                        callback(movies)
                     }
                 }
             }
         })
     }
 }
+
+
 
 // SearchBar
 @OptIn(ExperimentalMaterial3Api::class)
