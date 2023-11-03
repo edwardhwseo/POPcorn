@@ -69,6 +69,11 @@ import okhttp3.Request
 import org.json.JSONObject
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.platform.LocalFocusManager
+import okhttp3.Call
+import okhttp3.Callback
+import okhttp3.Response
+import java.io.IOException
+import android.util.Log
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -127,10 +132,34 @@ fun getMovies() {
             .addHeader("X-RapidAPI-Host", "imdb-top-100-movies1.p.rapidapi.com")
             .build()
 
-        val response = client.newCall(request).execute().body()?.string()
-        val jsonString = response?.let { JSONObject(it) }
+//        val response = client.newCall(request).execute().body()?.string()
 
-        val useless = "test1"
+        client.newCall(request).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) {
+                e.printStackTrace()
+            }
+
+            override fun onResponse(call: Call, response: Response) {
+                response.use {
+                    val jsonString = response.body!!.string()
+                    val jsonObject = JSONObject(jsonString)
+                    if (jsonString != null) {
+                        val id = jsonObject.getString("id")
+                        val title = jsonObject.getString("title")
+                        val description = jsonObject.getString("description")
+                        val link = jsonObject.getString("link")
+                        val genre = jsonObject.getString("genre")
+                        val images = jsonObject.getString("images")
+                        val rating = jsonObject.getDouble("rating")
+                        val year = jsonObject.getInt("year")
+
+                        val movieItem = MoviesItem(id, title, description, link, genre, images, rating, year)
+
+                        Log.d("id", movieItem.id)
+                    }
+                }
+            }
+        })
     }
 }
 
