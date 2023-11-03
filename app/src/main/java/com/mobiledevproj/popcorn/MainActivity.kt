@@ -26,6 +26,8 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
@@ -42,6 +44,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -61,6 +65,8 @@ import kotlinx.coroutines.launch
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.json.JSONObject
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.platform.LocalFocusManager
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -119,10 +125,10 @@ fun getMovies() {
             .addHeader("X-RapidAPI-Host", "imdb-top-100-movies1.p.rapidapi.com")
             .build()
 
-        val response = client.newCall(request).execute()
-        if(response.isSuccessful){
-//            var responseString = response.body().string()
-        }
+        val response = client.newCall(request).execute().body()?.string()
+        val jsonString = response?.let { JSONObject(it) }
+
+        val useless = "test1"
     }
 }
 
@@ -132,9 +138,12 @@ fun getMovies() {
 fun SearchBar(
     modifier: Modifier = Modifier
 ) {
+    var query by remember { mutableStateOf("") }
+    val focusRequester = LocalFocusManager.current
+
     TextField(
-        value = "",
-        onValueChange = {},
+        value = query,
+        onValueChange = { query = it },
         leadingIcon = {
             Icon(
                 imageVector = Icons.Default.Search,
@@ -150,7 +159,21 @@ fun SearchBar(
         },
         modifier = modifier
             .fillMaxWidth()
-            .heightIn(min = 56.dp)
+            .heightIn(min = 56.dp),
+        singleLine = true,// Assign the focusRequester
+        keyboardActions = KeyboardActions(
+            onSearch = {
+                val movies = fetchUpcomingMovies(query)
+                // Do something with the list of movies
+                movies.toString()
+
+                // Request focus on another element to dismiss the keyboard
+                focusRequester.clearFocus()
+            }
+        ),
+        keyboardOptions = KeyboardOptions(
+            imeAction = ImeAction.Search
+        )
     )
 }
 
