@@ -76,12 +76,9 @@ import okhttp3.Call
 import okhttp3.Callback
 import okhttp3.Response
 import java.io.IOException
-import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.core.os.bundleOf
 import org.json.JSONArray
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 
 class MainActivity : ComponentActivity() {
