@@ -1,14 +1,16 @@
 package com.mobiledevproj.popcorn
 
 import android.os.Bundle
-import android.view.LayoutInflater
-import android.view.View
-import android.view.ViewGroup
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.annotation.DrawableRes
+import androidx.annotation.StringRes
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -22,28 +24,15 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.mobiledevproj.popcorn.ui.theme.POPcornTheme
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.ui.res.stringResource
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.TextField
-import androidx.compose.material3.TextFieldDefaults
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.layout.paddingFromBaseline
 import androidx.compose.ui.layout.ContentScale
-import androidx.annotation.DrawableRes
-import androidx.annotation.StringRes
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.draw.clip
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -51,33 +40,72 @@ import androidx.compose.foundation.lazy.grid.LazyHorizontalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Button
 import androidx.compose.material3.Scaffold
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.platform.LocalFocusManager
+import okhttp3.Call
+import okhttp3.Callback
+import okhttp3.Response
+import java.io.IOException
+import androidx.compose.foundation.background
+import androidx.compose.foundation.lazy.LazyColumn
+import org.json.JSONArray
+import androidx.lifecycle.viewmodel.compose.viewModel
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
             val navController = rememberNavController()
+            val moviesViewModel: MoviesViewModel = viewModel()
+
+            getMovies { movies ->
+                moviesViewModel.movies = movies
+                navController.navigate("moviePage")
+            }
+
             AppNavigator(navController)
         }
     }
 }
 
-// Movie Page
 
+
+// Movie Page
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MoviePage(navController: NavHostController) {
+fun MoviePage(navController: NavHostController, moviesViewModel: MoviesViewModel) {
+    val movies = moviesViewModel.movies ?: emptyList()
+
     POPcornTheme {
         Scaffold(
             bottomBar = { POPcornBottomNavigation(navController) }
@@ -89,16 +117,56 @@ fun MoviePage(navController: NavHostController) {
                 Button(onClick = { navController.popBackStack() }, Modifier.padding(horizontal = 16.dp)) {
                     Text("Back")
                 }
-                Box(
+                LazyColumn(
                     modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ){
-                        Text("All Movies")
+                    contentPadding = PaddingValues(horizontal = 16.dp)
+                ) {
+                    items(movies) { movie ->
+                        MovieItem(movie)
+                    }
                 }
             }
         }
     }
 }
+
+
+@Composable
+fun LazyMovieList(movies: List<MoviesItem>) {
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 16.dp),
+        contentPadding = PaddingValues(vertical = 16.dp)
+    ) {
+        items(movies) { movie ->
+            MovieItem(movie)
+            Spacer(modifier = Modifier.height(16.dp)) // Add some spacing between items
+        }
+    }
+}
+
+@Composable
+fun MovieItem(movie: MoviesItem) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(200.dp)
+            .background(Color.Gray)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(text = movie.title, color = Color.White)
+            Text(text = movie.genre, color = Color.White)
+            Text(text = movie.description, color = Color.White)
+        }
+    }
+}
+
 
 // Social Page
 
@@ -168,14 +236,16 @@ fun ProfilePage(navController: NavHostController) {
 
 @Composable
 fun AppNavigator(navController: NavHostController) {
+    val moviesViewModel: MoviesViewModel = viewModel() // Retrieve the ViewModel
+
     NavHost(navController, startDestination = "popcornPortrait") {
         composable("popcornPortrait") {
             POPcornPortrait(navController)
         }
         composable("moviePage") {
-            MoviePage(navController)
+            MoviePage(navController, moviesViewModel)
         }
-        composable("socialPage"){
+        composable("socialPage") {
             SocialPage(navController)
         }
         composable("profilePage") {
@@ -183,6 +253,7 @@ fun AppNavigator(navController: NavHostController) {
         }
     }
 }
+
 
 @Preview(showBackground = true, device = "id:Nexus One", showSystemUi = true)
 @Composable
@@ -221,16 +292,65 @@ fun Greeting(name: String, modifier: Modifier = Modifier){
     }
 }
 
-// SearchBar
+fun getMovies(callback: (Movies) -> Unit) {
+    GlobalScope.launch(Dispatchers.IO) {
+        val client = OkHttpClient()
 
+        val request = Request.Builder()
+            .url("https://imdb-top-100-movies1.p.rapidapi.com/")
+            .get()
+            .addHeader("X-RapidAPI-Key", "980648891cmsh4d49ee8f2888ad9p1dc229jsn2b550bba1d65")
+            .addHeader("X-RapidAPI-Host", "imdb-top-100-movies1.p.rapidapi.com")
+            .build()
+
+        client.newCall(request).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) {
+                e.printStackTrace()
+            }
+
+            override fun onResponse(call: Call, response: Response) {
+                response.use {
+                    val jsonString = response.body!!.string()
+                    val jsonArray = JSONArray(jsonString)
+                    val movies = Movies()
+
+                    for (i in 0 until jsonArray.length()) {
+                        val jsonObject = jsonArray.getJSONObject(i)
+                        val id = jsonObject.getString("id")
+                        val title = jsonObject.getString("title")
+                        val description = jsonObject.getString("description")
+                        val link = jsonObject.getString("link")
+                        val genre = jsonObject.getString("genre")
+                        val images = jsonObject.getJSONArray("images").getJSONArray(0).getString(1)
+                        val rating = jsonObject.getDouble("rating")
+                        val year = jsonObject.getString("year")
+
+                        val movieItem = MoviesItem(id, title, description, link, genre, images, rating, year)
+                        movies.add(movieItem)
+                    }
+                    GlobalScope.launch(Dispatchers.Main) {
+                        callback(movies)
+                    }
+                }
+            }
+        })
+    }
+}
+
+
+
+// SearchBar
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SearchBar(
     modifier: Modifier = Modifier
 ) {
+    var query by remember { mutableStateOf("") }
+    val focusRequester = LocalFocusManager.current
+
     TextField(
-        value = "",
-        onValueChange = {},
+        value = query,
+        onValueChange = { query = it },
         leadingIcon = {
             Icon(
                 imageVector = Icons.Default.Search,
@@ -246,7 +366,21 @@ fun SearchBar(
         },
         modifier = modifier
             .fillMaxWidth()
-            .heightIn(min = 56.dp)
+            .heightIn(min = 56.dp),
+        singleLine = true,// Assign the focusRequester
+        keyboardActions = KeyboardActions(
+            onSearch = {
+//                val movies = fetchUpcomingMovies(query)
+                // Do something with the list of movies
+//                movies.toString()
+
+                // Request focus on another element to dismiss the keyboDard
+                focusRequester.clearFocus()
+            }
+        ),
+        keyboardOptions = KeyboardOptions(
+            imeAction = ImeAction.Search
+        )
     )
 }
 
@@ -257,7 +391,6 @@ fun SearchBarPreview() {
 }
 
 // POPcorn Element
-
 @Composable
 fun POPcornElement(
     @DrawableRes drawable: Int,
@@ -304,7 +437,6 @@ fun POPcornElementPreview() {
 }
 
 // Dashboard Row
-
 @Composable
 fun DashboardRow(navController: NavHostController, modifier: Modifier = Modifier) {
     LazyRow(
@@ -320,7 +452,6 @@ fun DashboardRow(navController: NavHostController, modifier: Modifier = Modifier
 }
 
 // HomeSection
-
 @Composable
 fun HomeSection(
     @StringRes title: Int,
@@ -351,7 +482,6 @@ fun HomeSectionPreview() {
 }
 
 // Favourites Collection
-
 @Composable
 fun FavouriteCollectionCard(
     @DrawableRes drawable: Int,
