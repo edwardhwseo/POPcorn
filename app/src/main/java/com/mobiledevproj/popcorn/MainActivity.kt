@@ -80,6 +80,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.lazy.LazyColumn
 import org.json.JSONArray
 import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.rememberImagePainter
+import kotlinx.coroutines.MainScope
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -98,8 +100,6 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-
-
 // Movie Page
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -110,19 +110,21 @@ fun MoviePage(navController: NavHostController, moviesViewModel: MoviesViewModel
         Scaffold(
             bottomBar = { POPcornBottomNavigation(navController) }
         ) { padding ->
-            Column{
+            Column {
                 Spacer(Modifier.height(16.dp))
                 SearchBar(Modifier.padding(horizontal = 16.dp))
                 Spacer(Modifier.height(16.dp))
                 Button(onClick = { navController.popBackStack() }, Modifier.padding(horizontal = 16.dp)) {
                     Text("Back")
                 }
+                Spacer(Modifier.height(16.dp))
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(horizontal = 16.dp)
                 ) {
                     items(movies) { movie ->
-                        MovieItem(movie)
+                        MovieCard(movie)
+                        Spacer(modifier = Modifier.height(16.dp))
                     }
                 }
             }
@@ -130,43 +132,66 @@ fun MoviePage(navController: NavHostController, moviesViewModel: MoviesViewModel
     }
 }
 
+// Movie Card
 
 @Composable
-fun LazyMovieList(movies: List<MoviesItem>) {
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 16.dp),
-        contentPadding = PaddingValues(vertical = 16.dp)
-    ) {
-        items(movies) { movie ->
-            MovieItem(movie)
-            Spacer(modifier = Modifier.height(16.dp)) // Add some spacing between items
-        }
-    }
-}
+fun MovieCard(movie: MoviesItem, modifier: Modifier = Modifier) {
+    val painter = rememberImagePainter(data = movie.images)
 
-@Composable
-fun MovieItem(movie: MoviesItem) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(200.dp)
-            .background(Color.Gray)
+    Surface(
+        shape = MaterialTheme.shapes.medium,
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        modifier = modifier
     ) {
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+                .clickable {
+                    // To do: Handle click action to go to the movie show page
+                }
         ) {
-            Text(text = movie.title, color = Color.White)
-            Text(text = movie.genre, color = Color.White)
-            Text(text = movie.description, color = Color.White)
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Image(
+                    painter = painter,
+                    contentDescription = null,
+                    contentScale = ContentScale.Fit,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(200.dp)
+                )
+
+                Text(text = movie.title, style = MaterialTheme.typography.titleMedium)
+
+                val genres = parseGenres(movie.genre)
+                Text(text = genres, style = MaterialTheme.typography.bodyMedium)
+
+                Text(text = movie.description, style = MaterialTheme.typography.bodyMedium)
+            }
         }
     }
 }
 
+// Function to parse and format Movie Genres
+fun parseGenres(genresJson: String): String {
+    try {
+        val jsonArray = JSONArray(genresJson)
+        val genreList = mutableListOf<String>()
+
+        for (i in 0 until jsonArray.length()) {
+            val genre = jsonArray.getString(i)
+            genreList.add(genre)
+        }
+
+        return genreList.joinToString(", ")
+    } catch (e: Exception) {
+        return genresJson
+    }
+}
 
 // Social Page
 
@@ -254,7 +279,6 @@ fun AppNavigator(navController: NavHostController) {
     }
 }
 
-
 @Preview(showBackground = true, device = "id:Nexus One", showSystemUi = true)
 @Composable
 fun GreetingPreview() {
@@ -292,52 +316,98 @@ fun Greeting(name: String, modifier: Modifier = Modifier){
     }
 }
 
+// Get Movies
+
+private val mainScope = MainScope()
+
 fun getMovies(callback: (Movies) -> Unit) {
-    GlobalScope.launch(Dispatchers.IO) {
-        val client = OkHttpClient()
+    val client = OkHttpClient()
 
-        val request = Request.Builder()
-            .url("https://imdb-top-100-movies1.p.rapidapi.com/")
-            .get()
-            .addHeader("X-RapidAPI-Key", "980648891cmsh4d49ee8f2888ad9p1dc229jsn2b550bba1d65")
-            .addHeader("X-RapidAPI-Host", "imdb-top-100-movies1.p.rapidapi.com")
-            .build()
+    val request = Request.Builder()
+        .url("https://imdb-top-100-movies1.p.rapidapi.com/")
+        .get()
+        .addHeader("X-RapidAPI-Key", "980648891cmsh4d49ee8f2888ad9p1dc229jsn2b550bba1d65")
+        .addHeader("X-RapidAPI-Host", "imdb-top-100-movies1.p.rapidapi.com")
+        .build()
 
-        client.newCall(request).enqueue(object : Callback {
-            override fun onFailure(call: Call, e: IOException) {
-                e.printStackTrace()
-            }
+    client.newCall(request).enqueue(object : Callback {
+        override fun onFailure(call: Call, e: IOException) {
+            e.printStackTrace()
+        }
 
-            override fun onResponse(call: Call, response: Response) {
-                response.use {
-                    val jsonString = response.body!!.string()
-                    val jsonArray = JSONArray(jsonString)
-                    val movies = Movies()
+        override fun onResponse(call: Call, response: Response) {
+            response.use {
+                val jsonString = response.body!!.string()
+                val jsonArray = JSONArray(jsonString)
+                val movies = Movies()
 
-                    for (i in 0 until jsonArray.length()) {
-                        val jsonObject = jsonArray.getJSONObject(i)
-                        val id = jsonObject.getString("id")
-                        val title = jsonObject.getString("title")
-                        val description = jsonObject.getString("description")
-                        val link = jsonObject.getString("link")
-                        val genre = jsonObject.getString("genre")
-                        val images = jsonObject.getJSONArray("images").getJSONArray(0).getString(1)
-                        val rating = jsonObject.getDouble("rating")
-                        val year = jsonObject.getString("year")
+                for (i in 0 until jsonArray.length()) {
+                    val jsonObject = jsonArray.getJSONObject(i)
+                    val id = jsonObject.getString("id")
+                    val title = jsonObject.getString("title")
+                    val description = jsonObject.getString("description")
+                    val link = jsonObject.getString("link")
+                    val genre = jsonObject.getString("genre")
+                    val images = jsonObject.getJSONArray("images").getJSONArray(0).getString(1)
+                    val rating = jsonObject.getDouble("rating")
+                    val year = jsonObject.getString("year")
 
-                        val movieItem = MoviesItem(id, title, description, link, genre, images, rating, year)
-                        movies.add(movieItem)
-                    }
-                    GlobalScope.launch(Dispatchers.Main) {
-                        callback(movies)
-                    }
+                    val movieItem = MoviesItem(id, title, description, link, genre, images, rating, year)
+                    movies.add(movieItem)
+                }
+
+                mainScope.launch(Dispatchers.Main) {
+                    callback(movies)
                 }
             }
-        })
-    }
+        }
+    })
 }
 
-
+//fun getMovies(callback: (Movies) -> Unit) {
+//    GlobalScope.launch(Dispatchers.IO) {
+//        val client = OkHttpClient()
+//
+//        val request = Request.Builder()
+//            .url("https://imdb-top-100-movies1.p.rapidapi.com/")
+//            .get()
+//            .addHeader("X-RapidAPI-Key", "980648891cmsh4d49ee8f2888ad9p1dc229jsn2b550bba1d65")
+//            .addHeader("X-RapidAPI-Host", "imdb-top-100-movies1.p.rapidapi.com")
+//            .build()
+//
+//        client.newCall(request).enqueue(object : Callback {
+//            override fun onFailure(call: Call, e: IOException) {
+//                e.printStackTrace()
+//            }
+//
+//            override fun onResponse(call: Call, response: Response) {
+//                response.use {
+//                    val jsonString = response.body!!.string()
+//                    val jsonArray = JSONArray(jsonString)
+//                    val movies = Movies()
+//
+//                    for (i in 0 until jsonArray.length()) {
+//                        val jsonObject = jsonArray.getJSONObject(i)
+//                        val id = jsonObject.getString("id")
+//                        val title = jsonObject.getString("title")
+//                        val description = jsonObject.getString("description")
+//                        val link = jsonObject.getString("link")
+//                        val genre = jsonObject.getString("genre")
+//                        val images = jsonObject.getJSONArray("images").getJSONArray(0).getString(1)
+//                        val rating = jsonObject.getDouble("rating")
+//                        val year = jsonObject.getString("year")
+//
+//                        val movieItem = MoviesItem(id, title, description, link, genre, images, rating, year)
+//                        movies.add(movieItem)
+//                    }
+//                    GlobalScope.launch(Dispatchers.Main) {
+//                        callback(movies)
+//                    }
+//                }
+//            }
+//        })
+//    }
+//}
 
 // SearchBar
 @OptIn(ExperimentalMaterial3Api::class)
