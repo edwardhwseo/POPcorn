@@ -3,6 +3,7 @@ package com.mobiledevproj.popcorn
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.viewModels
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
 import androidx.compose.foundation.Image
@@ -78,12 +79,21 @@ import okhttp3.Response
 import java.io.IOException
 import androidx.compose.foundation.background
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.runtime.LaunchedEffect
 import org.json.JSONArray
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.rememberImagePainter
 import kotlinx.coroutines.MainScope
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.ViewModel
+import androidx.compose.runtime.livedata.observeAsState
 
 class MainActivity : ComponentActivity() {
+    private val favouritesViewModel by viewModels<FavouritesViewModel>()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
@@ -95,7 +105,7 @@ class MainActivity : ComponentActivity() {
                 navController.navigate("moviePage")
             }
 
-            AppNavigator(navController)
+            AppNavigator(navController, favouritesViewModel)
         }
     }
 }
@@ -123,7 +133,7 @@ fun MoviePage(navController: NavHostController, moviesViewModel: MoviesViewModel
                     contentPadding = PaddingValues(horizontal = 16.dp)
                 ) {
                     items(movies) { movie ->
-                        MovieCard(movie)
+                        MovieCard(movie, navController = navController)
                         Spacer(modifier = Modifier.height(16.dp))
                     }
                 }
@@ -135,7 +145,7 @@ fun MoviePage(navController: NavHostController, moviesViewModel: MoviesViewModel
 // Movie Card
 
 @Composable
-fun MovieCard(movie: MoviesItem, modifier: Modifier = Modifier) {
+fun MovieCard(movie: MoviesItem, modifier: Modifier = Modifier, navController: NavHostController) {
     val painter = rememberImagePainter(data = movie.images)
 
     Surface(
@@ -147,7 +157,7 @@ fun MovieCard(movie: MoviesItem, modifier: Modifier = Modifier) {
             modifier = Modifier
                 .fillMaxSize()
                 .clickable {
-                    // To do: Handle click action to go to the movie show page
+                    navController.navigate("movieDetails/${movie.id}")
                 }
         ) {
             Column(
@@ -190,6 +200,133 @@ fun parseGenres(genresJson: String): String {
         return genreList.joinToString(", ")
     } catch (e: Exception) {
         return genresJson
+    }
+}
+
+// Movie Details Page
+
+@Composable
+fun MovieDetails(
+    movie: MoviesItem,
+    navController: NavHostController,
+    favouritesViewModel: FavouritesViewModel
+) {
+    var isFavourite by remember { mutableStateOf(favouritesViewModel.isMovieInFavourites(movie)) }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(16.dp)
+    ) {
+        Button(
+            onClick = { navController.popBackStack() },
+            modifier = Modifier
+                .align(Alignment.Start)
+                .padding(bottom = 16.dp)
+        ) {
+            Text("Back")
+        }
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(250.dp)
+                .clip(shape = RoundedCornerShape(12.dp))
+                .background(MaterialTheme.colorScheme.surface)
+        ) {
+            Image(
+                painter = rememberImagePainter(data = movie.images),
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize()
+            )
+        }
+
+        Column(
+            modifier = Modifier
+                .padding(vertical = 16.dp)
+                .fillMaxWidth()
+        ) {
+            Text(
+                text = movie.title,
+                style = MaterialTheme.typography.headlineLarge,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+
+            Text(
+                text = movie.description,
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(bottom = 16.dp)
+            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = "Rating: ${movie.rating}",
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.weight(1f)
+                )
+
+                Text(
+                    text = "Year: ${movie.year}",
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+
+            Text(
+                text = "Genre: ${parseGenres(movie.genre)}",
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(top = 8.dp)
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Button(
+                onClick = {
+                    if (isFavourite) {
+                        favouritesViewModel.removeMovieFromFavourites(movie)
+                    } else {
+                        favouritesViewModel.addMovieToFavourites(movie)
+                    }
+
+                    isFavourite = favouritesViewModel.isMovieInFavourites(movie)
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp)
+                    .padding(vertical = 8.dp)
+            ) {
+                Text(if (isFavourite) "Remove from Favourites" else "Add to Favourites")
+            }
+        }
+    }
+}
+
+// Favourites View Model
+
+class FavouritesViewModel : ViewModel() {
+
+    private val _favouriteMovies = MutableLiveData<List<MoviesItem>>(emptyList())
+    val favouriteMovies: LiveData<List<MoviesItem>> = _favouriteMovies
+
+    fun isMovieInFavourites(movie: MoviesItem): Boolean {
+        return _favouriteMovies.value?.any { it.id == movie.id } ?: false
+    }
+
+    fun addMovieToFavourites(movie: MoviesItem) {
+        val currentFavourites = _favouriteMovies.value.orEmpty().toMutableList()
+        currentFavourites.add(movie)
+        _favouriteMovies.value = currentFavourites
+    }
+
+    fun removeMovieFromFavourites(movie: MoviesItem) {
+        val currentFavourites = _favouriteMovies.value.orEmpty().toMutableList()
+        currentFavourites.removeAll { it.id == movie.id }
+        _favouriteMovies.value = currentFavourites
     }
 }
 
@@ -260,7 +397,7 @@ fun ProfilePage(navController: NavHostController) {
 // App Navigator
 
 @Composable
-fun AppNavigator(navController: NavHostController) {
+fun AppNavigator(navController: NavHostController, favouritesViewModel: FavouritesViewModel) {
     val moviesViewModel: MoviesViewModel = viewModel() // Retrieve the ViewModel
 
     NavHost(navController, startDestination = "popcornPortrait") {
@@ -269,6 +406,16 @@ fun AppNavigator(navController: NavHostController) {
         }
         composable("moviePage") {
             MoviePage(navController, moviesViewModel)
+        }
+        composable("movieDetails/{movieId}") { backStackEntry ->
+            val movieId = backStackEntry.arguments?.getString("movieId")
+            val selectedMovie = moviesViewModel.movies?.find { it.id == movieId }
+
+            if (selectedMovie != null) {
+                MovieDetails(selectedMovie, navController, favouritesViewModel)
+            } else {
+                Text("Movie not found")
+            }
         }
         composable("socialPage") {
             SocialPage(navController)
@@ -551,11 +698,72 @@ fun HomeSectionPreview() {
     }
 }
 
-// Favourites Collection
+ //Favourites Collection
+
+//@Composable
+//fun FavouriteCollectionCard(
+//    @DrawableRes drawable: Int,
+//    @StringRes text: Int,
+//    modifier: Modifier = Modifier
+//) {
+//    Surface(
+//        shape = MaterialTheme.shapes.medium,
+//        color = MaterialTheme.colorScheme.surfaceVariant,
+//        modifier = modifier
+//    ) {
+//        Row(
+//            verticalAlignment = Alignment.CenterVertically,
+//            modifier = Modifier.width(255.dp)
+//        ) {
+//            Image(
+//                painter = painterResource(drawable),
+//                contentDescription = null,
+//                contentScale = ContentScale.Crop,
+//                modifier = Modifier.size(80.dp)
+//            )
+//            Text(
+//                text = stringResource(text),
+//                style = MaterialTheme.typography.titleMedium,
+//                modifier = Modifier.padding(horizontal = 16.dp)
+//            )
+//        }
+//    }
+//}
+//
+//@Preview(showBackground = true, backgroundColor = 0xFFF5F0EE)
+//@Composable
+//fun FavouriteCollectionCardPreview() {
+//    POPcornTheme {
+//        FavouriteCollectionCard(
+//            text = R.string.fc1_blade_runner,
+//            drawable = R.drawable.blade_runner,
+//            modifier = Modifier.padding(8.dp)
+//        )
+//    }
+//}
+
+// Favourite Collection Grid
+
+//@Composable
+//fun FavouriteCollectionsGrid(
+//    modifier: Modifier = Modifier
+//) {
+//    LazyHorizontalGrid(
+//        rows = GridCells.Fixed(2),
+//        contentPadding = PaddingValues(horizontal = 16.dp),
+//        horizontalArrangement = Arrangement.spacedBy(16.dp),
+//        verticalArrangement = Arrangement.spacedBy(16.dp),
+//        modifier = modifier.height(168.dp)
+//    ) {
+//        items(favouriteCollectionsData) { item ->
+//            FavouriteCollectionCard(item.drawable, item.text, Modifier.height(80.dp))
+//        }
+//    }
+//}
+
 @Composable
 fun FavouriteCollectionCard(
-    @DrawableRes drawable: Int,
-    @StringRes text: Int,
+    movie: MoviesItem,
     modifier: Modifier = Modifier
 ) {
     Surface(
@@ -563,41 +771,38 @@ fun FavouriteCollectionCard(
         color = MaterialTheme.colorScheme.surfaceVariant,
         modifier = modifier
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.width(255.dp)
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .clickable { /* Handle click if needed */ }
         ) {
-            Image(
-                painter = painterResource(drawable),
-                contentDescription = null,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.size(80.dp)
-            )
-            Text(
-                text = stringResource(text),
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(horizontal = 16.dp)
-            )
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Image(
+                    painter = rememberImagePainter(data = movie.images),
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(200.dp)
+                )
+                Text(text = movie.title, style = MaterialTheme.typography.titleMedium)
+                Text(text = movie.description, style = MaterialTheme.typography.bodyMedium)
+                // Add other movie details as needed
+            }
         }
-    }
-}
-
-@Preview(showBackground = true, backgroundColor = 0xFFF5F0EE)
-@Composable
-fun FavouriteCollectionCardPreview() {
-    POPcornTheme {
-        FavouriteCollectionCard(
-            text = R.string.fc1_blade_runner,
-            drawable = R.drawable.blade_runner,
-            modifier = Modifier.padding(8.dp)
-        )
     }
 }
 
 @Composable
 fun FavouriteCollectionsGrid(
+    favouritesViewModel: FavouritesViewModel,
     modifier: Modifier = Modifier
 ) {
+    val favouriteMovies by favouritesViewModel.favouriteMovies.observeAsState(emptyList())
+
     LazyHorizontalGrid(
         rows = GridCells.Fixed(2),
         contentPadding = PaddingValues(horizontal = 16.dp),
@@ -605,8 +810,9 @@ fun FavouriteCollectionsGrid(
         verticalArrangement = Arrangement.spacedBy(16.dp),
         modifier = modifier.height(168.dp)
     ) {
-        items(favouriteCollectionsData) { item ->
-            FavouriteCollectionCard(item.drawable, item.text, Modifier.height(80.dp))
+        items(favouriteMovies) { movie ->
+            FavouriteCollectionCard(movie, modifier = Modifier.height(250.dp))
+            Spacer(modifier = Modifier.height(16.dp))
         }
     }
 }
@@ -615,6 +821,8 @@ fun FavouriteCollectionsGrid(
 
 @Composable
 fun HomeScreen(navController: NavHostController, modifier: Modifier = Modifier) {
+    val favouritesViewModel : FavouritesViewModel = viewModel()
+
     Column(
         modifier
             .verticalScroll(rememberScrollState())
@@ -625,7 +833,7 @@ fun HomeScreen(navController: NavHostController, modifier: Modifier = Modifier) 
             DashboardRow(navController)
         }
         HomeSection(title = R.string.favourite_collection) {
-            FavouriteCollectionsGrid()
+            FavouriteCollectionsGrid(favouritesViewModel = favouritesViewModel)
         }
 
         Spacer(Modifier.height(16.dp))
