@@ -205,6 +205,7 @@ fun parseGenres(genresJson: String): String {
 
 // Movie Details Page
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MovieDetails(
     movie: MoviesItem,
@@ -212,7 +213,9 @@ fun MovieDetails(
     favouritesViewModel: FavouritesViewModel
 ) {
     var isFavourite by remember { mutableStateOf(favouritesViewModel.isMovieInFavourites(movie)) }
-
+    Scaffold(
+        bottomBar = { POPcornBottomNavigation(navController) }
+    ) { padding ->
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -303,6 +306,7 @@ fun MovieDetails(
                 Text(if (isFavourite) "Remove from Favourites" else "Add to Favourites")
             }
         }
+    }
     }
 }
 
