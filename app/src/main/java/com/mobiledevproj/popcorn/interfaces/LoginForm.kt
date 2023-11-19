@@ -54,7 +54,7 @@ import com.mobiledevproj.popcorn.R
 import com.mobiledevproj.popcorn.ui.theme.POPcornTheme
 
 @Composable
-fun LoginForm(){
+fun LoginForm(onRegisterClicked: () -> Unit) {
     Surface {
         var credentials by remember { mutableStateOf(Credentials()) }
         val context = LocalContext.current
@@ -102,6 +102,16 @@ fun LoginForm(){
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text("Login")
+            }
+
+            Button(
+                onClick = onRegisterClicked, // Redirect to RegistrationActivity when clicked
+                shape = RoundedCornerShape(5.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 16.dp)
+            ) {
+                Text("Register")
             }
         }
     }
@@ -231,21 +241,5 @@ fun checkCredentials(creds: Credentials, context: Context): Boolean {
     } else {
         Toast.makeText(context, "Wrong Credentials", Toast.LENGTH_LONG).show()
         return false
-    }
-}
-
-@Preview(showBackground = true, device = "id:Nexus One", showSystemUi = true)
-@Composable
-fun LoginFormPreview() {
-    POPcornTheme {
-        LoginForm()
-    }
-}
-
-@Preview(showBackground = true, device = "id:Nexus One", showSystemUi = true)
-@Composable
-fun LoginFormPreviewDark() {
-    POPcornTheme(darkTheme = true) {
-        LoginForm()
     }
 }
