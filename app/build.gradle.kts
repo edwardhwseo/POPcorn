@@ -70,6 +70,7 @@ dependencies {
     implementation("androidx.navigation:navigation-ui-ktx:2.7.5")
     implementation("androidx.navigation:navigation-compose:2.7.5")
     implementation("androidx.navigation:navigation-runtime-ktx:2.7.5")
+    implementation ("androidx.compose.runtime:runtime-livedata:1.0.5")
     //implementation("androidx.navigation:navigation-fragment:$2.4.0-alpha02")
     //implementation("androidx.navigation:navigation-ui:$2.4.0-alpha02")
     implementation("androidx.compose.ui:ui-unit-android:1.5.4")
