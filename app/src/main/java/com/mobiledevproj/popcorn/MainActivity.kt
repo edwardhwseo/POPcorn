@@ -1,5 +1,7 @@
 package com.mobiledevproj.popcorn
 
+import android.content.Context
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -84,6 +86,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.LaunchedEffect
 import org.json.JSONArray
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -102,13 +106,18 @@ class MainActivity : ComponentActivity() {
             val navController = rememberNavController()
             val moviesViewModel: MoviesViewModel = viewModel()
             val favouritesViewModel by viewModels<FavouritesViewModel>()
+            val context: Context = this
 
             getMovies { movies ->
                 moviesViewModel.movies = movies
                 navController.navigate("moviePage")
             }
 
-            AppNavigator(navController, favouritesViewModel)
+            val onSignOut: () -> Unit = {
+                navController.navigate("sign_in")
+            }
+
+            AppNavigator(navController, favouritesViewModel, context)
         }
     }
 }
@@ -415,12 +424,16 @@ fun ProfilePage(navController: NavHostController) {
 // App Navigator
 
 @Composable
-fun AppNavigator(navController: NavHostController, favouritesViewModel: FavouritesViewModel) {
+fun AppNavigator(navController: NavHostController, favouritesViewModel: FavouritesViewModel, context: Context) {
     val moviesViewModel: MoviesViewModel = viewModel()
 
     NavHost(navController, startDestination = "popcornPortrait") {
         composable("popcornPortrait") {
-            POPcornPortrait(navController, favouritesViewModel)
+            POPcornPortrait(navController, favouritesViewModel, onSignOut = {
+                val intent = Intent(context, LoginActivity::class.java)
+                intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                context.startActivity(intent)
+            } )
         }
         composable("moviePage") {
             MoviePage(navController, moviesViewModel)
@@ -899,9 +912,27 @@ fun POPcornBottomNavigationPreview() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun POPcornPortrait(navController: NavHostController, favouritesViewModel: FavouritesViewModel) {
+fun POPcornPortrait(
+    navController: NavHostController,
+    favouritesViewModel: FavouritesViewModel,
+    onSignOut: () -> Unit
+){
     POPcornTheme {
         Scaffold(
+            topBar = {
+                TopAppBar(title = { Text(text = stringResource(R.string.app_name)) }, actions = {
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.surface)) {
+                        IconButton(onClick = onSignOut) {
+                            Icon(Icons.Default.AccountCircle, contentDescription = null)
+                        }
+                    }
+                    Text(text = "Sign Out")
+                })
+            },
             bottomBar = { POPcornBottomNavigation(navController) }
         ) { padding ->
             HomeScreen(navController, favouritesViewModel)
@@ -913,7 +944,7 @@ fun POPcornPortrait(navController: NavHostController, favouritesViewModel: Favou
 @Composable
 fun POPcornPortraitPreview(favouritesViewModel: FavouritesViewModel) {
     val navController = rememberNavController()
-    POPcornPortrait(navController, favouritesViewModel)
+    POPcornPortrait(navController, favouritesViewModel, onSignOut = {})
 }
 
 // Dashboard Items

@@ -95,23 +95,6 @@ class LoginActivity : ComponentActivity() {
                                     )
                                 }
                             })
-
-
-
-
-//                            if (isLoggedIn) {
-//                                // If user is logged in, navigate to MainActivity
-//                                startActivity(Intent(context, MainActivity::class.java))
-//                                finish()
-//                            } else {
-//                                val navigateToRegistration = {
-//                                    startActivity(Intent(context, RegistrationActivity::class.java))
-//                                }
-//
-//                                LoginForm(state = SignInViewModel().state.value,onRegisterClicked = navigateToRegistration, onSignInClick = {
-//                                    isLoggedIn = true
-//                                })
-//                            }
                         }
                     }
                 }

@@ -48,6 +48,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import com.google.firebase.auth.FirebaseAuth
 import com.mobiledevproj.popcorn.MainActivity
 import com.mobiledevproj.popcorn.R
 import com.mobiledevproj.popcorn.RegistrationActivity
@@ -109,7 +110,11 @@ fun LoginForm(
             Spacer(modifier = Modifier.height(20.dp))
             Button(
                 onClick = {
-//                    if (!checkCredentials(credentials, context)) credentials = Credentials()
+                    if (credentials.isNotEmpty()) {
+                        signInWithEmailAndPassword(credentials.login, credentials.pwd, context)
+                    } else {
+                        Toast.makeText(context, "Please fill in the credentials", Toast.LENGTH_SHORT).show()
+                    }
                 },
                 enabled = credentials.isNotEmpty(),
                 shape = RoundedCornerShape(5.dp),
@@ -261,13 +266,19 @@ fun LabeledCheckbox(
     }
 }
 
-//fun checkCredentials(creds: Credentials, context: Context): Boolean {
-//    if (creds.isNotEmpty() && creds.login == "admin") {
-//        context.startActivity(Intent(context, MainActivity::class.java))
-//        (context as Activity).finish()
-//        return true
-//    } else {
-//        Toast.makeText(context, "Wrong Credentials", Toast.LENGTH_LONG).show()
-//        return false
-//    }
-//}
+fun signInWithEmailAndPassword(email: String, password: String, context: Context) {
+    FirebaseAuth.getInstance().signInWithEmailAndPassword(email, password)
+        .addOnCompleteListener { task ->
+            if (task.isSuccessful) {
+                // Sign-in successful
+                Toast.makeText(context, "Sign-in successful", Toast.LENGTH_SHORT).show()
+                // Proceed to the app's main screen or perform necessary actions
+                val intent = Intent(context, MainActivity::class.java)
+                context.startActivity(intent)
+                (context as Activity).finish()
+            } else {
+                // Sign-in failed
+                Toast.makeText(context, "Sign-in failed: ${task.exception?.message}", Toast.LENGTH_SHORT).show()
+            }
+        }
+}

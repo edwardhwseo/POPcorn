@@ -3,6 +3,7 @@ package com.mobiledevproj.popcorn.sign_in
 import android.content.Context
 import android.content.Intent
 import android.content.IntentSender
+import androidx.navigation.NavController
 import com.google.android.gms.auth.api.identity.BeginSignInRequest
 import com.google.android.gms.auth.api.identity.BeginSignInRequest.GoogleIdTokenRequestOptions
 import com.google.android.gms.auth.api.identity.SignInClient
@@ -58,7 +59,7 @@ class GoogleAuthUiClient(
         }
     }
 
-    suspend fun signOut() {
+    suspend fun signOut(){
         try {
             oneTapClient.signOut().await()
             auth.signOut()

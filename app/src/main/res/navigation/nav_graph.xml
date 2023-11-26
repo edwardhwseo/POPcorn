@@ -19,6 +19,19 @@
         android:name="com.mobiledevproj.popcorn.ProfileFragment"
         android:label="ProfileFragment" />
 
+    <fragment
+        android:id="@+id/loginActivity"
+        android:name="com.mobiledevproj.popcorn.LoginActivity"
+        android:label="LoginActivity" />
+
+    <action
+        android:id="@+id/action_popcorn_to_loginActivity"
+        app:destination="@id/loginActivity"
+        app:enterAnim="@anim/nav_default_enter_anim"
+        app:exitAnim="@anim/nav_default_exit_anim"
+        app:popUpTo="@+id/popcornPortrait"
+        app:popUpToInclusive="true" />
+
     <destination
         android:id="@+id/popcornPortrait"
         app:popEnterAnim="@anim/nav_default_enter_anim"
