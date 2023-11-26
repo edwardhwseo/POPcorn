@@ -1,5 +1,4 @@
 package com.mobiledevproj.popcorn.interfaces
-
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
@@ -33,6 +32,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -47,14 +47,28 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.mobiledevproj.popcorn.MainActivity
 import com.mobiledevproj.popcorn.R
-import com.mobiledevproj.popcorn.ui.theme.POPcornTheme
+import com.mobiledevproj.popcorn.RegistrationActivity
+import com.mobiledevproj.popcorn.sign_in.SignInState
 
 @Composable
-fun LoginForm(onRegisterClicked: () -> Unit) {
+fun LoginForm(
+    state: SignInState,
+    onSignInClick: () -> Unit
+) {
+
+    val context = LocalContext.current
+    LaunchedEffect(key1 = state.signInError){
+        state.signInError?.let { error ->
+            Toast.makeText(
+                context,
+                error,
+                Toast.LENGTH_LONG).show()
+        }
+    }
+
     Surface {
         var credentials by remember { mutableStateOf(Credentials()) }
         val context = LocalContext.current
@@ -80,7 +94,7 @@ fun LoginForm(onRegisterClicked: () -> Unit) {
                 value = credentials.pwd,
                 onChange = { data -> credentials = credentials.copy(pwd = data) },
                 submit = {
-                    if (!checkCredentials(credentials, context)) credentials = Credentials()
+//                    if (!checkCredentials(credentials, context)) credentials = Credentials()
                 },
                 modifier = Modifier.fillMaxWidth()
             )
@@ -95,7 +109,7 @@ fun LoginForm(onRegisterClicked: () -> Unit) {
             Spacer(modifier = Modifier.height(20.dp))
             Button(
                 onClick = {
-                    if (!checkCredentials(credentials, context)) credentials = Credentials()
+//                    if (!checkCredentials(credentials, context)) credentials = Credentials()
                 },
                 enabled = credentials.isNotEmpty(),
                 shape = RoundedCornerShape(5.dp),
@@ -104,14 +118,28 @@ fun LoginForm(onRegisterClicked: () -> Unit) {
                 Text("Login")
             }
 
+            // Register Button
             Button(
-                onClick = onRegisterClicked, // Redirect to RegistrationActivity when clicked
+                onClick = {
+                    val intent = Intent(context, RegistrationActivity::class.java)
+                    context.startActivity(intent)
+                          },    // Redirect to RegistrationActivity when clicked
                 shape = RoundedCornerShape(5.dp),
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 16.dp)
             ) {
                 Text("Register")
+            }
+
+            // Google Sign-In button
+            Button(
+                shape = RoundedCornerShape(5.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 16.dp),
+                onClick = onSignInClick) {
+                Text(text = "Sign in with Google")
             }
         }
     }
@@ -233,13 +261,13 @@ fun LabeledCheckbox(
     }
 }
 
-fun checkCredentials(creds: Credentials, context: Context): Boolean {
-    if (creds.isNotEmpty() && creds.login == "admin") {
-        context.startActivity(Intent(context, MainActivity::class.java))
-        (context as Activity).finish()
-        return true
-    } else {
-        Toast.makeText(context, "Wrong Credentials", Toast.LENGTH_LONG).show()
-        return false
-    }
-}
+//fun checkCredentials(creds: Credentials, context: Context): Boolean {
+//    if (creds.isNotEmpty() && creds.login == "admin") {
+//        context.startActivity(Intent(context, MainActivity::class.java))
+//        (context as Activity).finish()
+//        return true
+//    } else {
+//        Toast.makeText(context, "Wrong Credentials", Toast.LENGTH_LONG).show()
+//        return false
+//    }
+//}

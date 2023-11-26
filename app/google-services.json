@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "368377427969",
+    "project_id": "popcorn-c88f8",
+    "storage_bucket": "popcorn-c88f8.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:368377427969:android:59b13b7e9b77c61f6fa800",
+        "android_client_info": {
+          "package_name": "com.mobiledevproj.popcorn"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCtUyk6p4tDfSGwXYwxKATU2vG3AfL0bFk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
