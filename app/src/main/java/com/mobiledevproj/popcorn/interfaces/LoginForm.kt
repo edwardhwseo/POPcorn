@@ -168,8 +168,8 @@ fun LoginField(
     value: String,
     onChange : (String)->Unit,
     modifier: Modifier = Modifier,
-    label : String = "Login",
-    placeholder : String = "Enter your Login"
+    label : String = "Email",
+    placeholder : String = "Enter your Email"
 ) {
     val focusManager = LocalFocusManager.current
     val leadingIcon = @Composable {
