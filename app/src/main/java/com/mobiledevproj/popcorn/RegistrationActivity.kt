@@ -107,9 +107,7 @@ class RegistrationActivity : ComponentActivity() {
                             }
                     }
                 } else {
-                    showToast("Registration failed. Please try again.")
-                    // Print the exception message to logcat
-                    Log.e("Firebase", "Error: ${task.exception?.message}")
+                    showToast("Registration failed. Please try again. ${task.exception?.message}")
                 }
             }
     }

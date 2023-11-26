@@ -99,14 +99,14 @@ fun LoginForm(
                 },
                 modifier = Modifier.fillMaxWidth()
             )
-            Spacer(modifier = Modifier.height(10.dp))
-            LabeledCheckbox(
-                label = "Remember Me",
-                onCheckChanged = {
-                    credentials = credentials.copy(remember = !credentials.remember)
-                },
-                isChecked = credentials.remember
-            )
+//            Spacer(modifier = Modifier.height(10.dp))
+//            LabeledCheckbox(
+//                label = "Remember Me",
+//                onCheckChanged = {
+//                    credentials = credentials.copy(remember = !credentials.remember)
+//                },
+//                isChecked = credentials.remember
+//            )
             Spacer(modifier = Modifier.height(20.dp))
             Button(
                 onClick = {
