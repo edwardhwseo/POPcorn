@@ -99,6 +99,10 @@ import androidx.lifecycle.ViewModel
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.text.style.TextOverflow
 
+/*
+The entry point for the POPcorn application.
+It initializes the UI and handles navigation using Jetpack Compose.
+ */
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -122,7 +126,10 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-// Movie Page
+/*
+Movie Page
+Displays movie data in a list.
+*/
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MoviePage(navController: NavHostController, moviesViewModel: MoviesViewModel) {
@@ -165,8 +172,10 @@ fun MoviePage(navController: NavHostController, moviesViewModel: MoviesViewModel
     }
 }
 
-// Movie Card
-
+/*
+Movie Card
+Displays the movie image, description, and genre on a card.
+*/
 @Composable
 fun MovieCard(movie: MoviesItem, modifier: Modifier = Modifier, navController: NavHostController) {
     val painter = rememberImagePainter(data = movie.images)
@@ -226,8 +235,12 @@ fun parseGenres(genresJson: String): String {
     }
 }
 
-// Movie Details Page
-
+/*
+Movie Details Page
+Displays specific movie data including
+movie image, title, description, rating, genre and year.
+Includes a favourite button to add to favourites collection.
+*/
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MovieDetails(
@@ -357,8 +370,9 @@ class FavouritesViewModel : ViewModel() {
     }
 }
 
-// Social Page
-
+/*
+Social Page
+*/
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SocialPage(navController: NavHostController) {
@@ -384,8 +398,10 @@ fun SocialPage(navController: NavHostController) {
     }
 }
 
-// Profile Page
-
+/*
+Profile Page
+Displays user data.
+*/
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfilePage(navController: NavHostController) {
@@ -421,8 +437,10 @@ fun ProfilePage(navController: NavHostController) {
     }
 }
 
-// App Navigator
-
+/*
+App Navigator
+Facilitates navigation within the application.
+*/
 @Composable
 fun AppNavigator(navController: NavHostController, favouritesViewModel: FavouritesViewModel, context: Context) {
     val moviesViewModel: MoviesViewModel = viewModel()
@@ -457,6 +475,7 @@ fun AppNavigator(navController: NavHostController, favouritesViewModel: Favourit
     }
 }
 
+// Preview Composable
 @Preview(showBackground = true, device = "id:Nexus One", showSystemUi = true)
 @Composable
 fun GreetingPreview() {
@@ -465,6 +484,7 @@ fun GreetingPreview() {
     }
 }
 
+// Preview Composable
 @Preview(showBackground = true, device = "id:Nexus One", showSystemUi = true)
 @Composable
 fun GreetingPreviewDark() {
@@ -473,6 +493,7 @@ fun GreetingPreviewDark() {
     }
 }
 
+// Greeting Composable
 @Composable
 fun Greeting(name: String, modifier: Modifier = Modifier){
     Surface {
@@ -494,8 +515,10 @@ fun Greeting(name: String, modifier: Modifier = Modifier){
     }
 }
 
-// Get Movies
-
+/*
+Get Movies
+Function to acquire movie data from API.
+*/
 private val mainScope = MainScope()
 
 fun getMovies(callback: (Movies) -> Unit) {
@@ -542,7 +565,10 @@ fun getMovies(callback: (Movies) -> Unit) {
     })
 }
 
-// SearchBar
+/*
+Search Bar Composable
+Allows search functionality within the application.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SearchBar(
@@ -591,13 +617,17 @@ fun SearchBar(
     )
 }
 
+// Preview Composable
 //@Preview(showBackground = true, backgroundColor = 0xFFF5F0EE)
 //@Composable
 //fun SearchBarPreview() {
 //    POPcornTheme { SearchBar(Modifier.padding(8.dp)) }
 //}
 
-// POPcorn Element
+/*
+POPcorn Element
+Dashboard element for Movie and Social Pages.
+ */
 @Composable
 fun POPcornElement(
     @DrawableRes drawable: Int,
@@ -628,6 +658,7 @@ fun POPcornElement(
     }
 }
 
+// Preview Composable
 @Preview(showBackground = true, backgroundColor = 0xFFF5F0EE)
 @Composable
 fun POPcornElementPreview() {
@@ -643,7 +674,10 @@ fun POPcornElementPreview() {
     }
 }
 
-// Dashboard Row
+/*
+Dashboard Row
+Displays homepage POPcorn element in row format.
+ */
 @Composable
 fun DashboardRow(navController: NavHostController, modifier: Modifier = Modifier) {
     LazyRow(
@@ -658,7 +692,10 @@ fun DashboardRow(navController: NavHostController, modifier: Modifier = Modifier
     }
 }
 
-// HomeSection
+/*
+Home Section
+Displays UI elements onto the Home Page.
+*/
 @Composable
 fun HomeSection(
     @StringRes title: Int,
@@ -677,6 +714,7 @@ fun HomeSection(
     }
 }
 
+// Preview Composable
 @Preview(showBackground = true, backgroundColor = 0xFFF5F0EE)
 @Composable
 fun HomeSectionPreview() {
@@ -688,71 +726,10 @@ fun HomeSectionPreview() {
     }
 }
 
-//Favourites Collection
-
-//@Composable
-//fun FavouriteCollectionCard(
-////    @DrawableRes drawable: Int,
-////    @StringRes text: Int,
-//    ,
-//    modifier: Modifier = Modifier
-//) {
-//    Surface(
-//        shape = MaterialTheme.shapes.medium,
-//        color = MaterialTheme.colorScheme.surfaceVariant,
-//        modifier = modifier
-//    ) {
-//        Row(
-//            verticalAlignment = Alignment.CenterVertically,
-//            modifier = Modifier.width(255.dp)
-//        ) {
-//            Image(
-//                painter = painterResource(drawable),
-//                contentDescription = null,
-//                contentScale = ContentScale.Crop,
-//                modifier = Modifier.size(80.dp)
-//            )
-//            Text(
-//                text = stringResource(text),
-//                style = MaterialTheme.typography.titleMedium,
-//                modifier = Modifier.padding(horizontal = 16.dp)
-//            )
-//        }
-//    }
-//}
-//
-//@Preview(showBackground = true, backgroundColor = 0xFFF5F0EE)
-//@Composable
-//fun FavouriteCollectionCardPreview() {
-//    POPcornTheme {
-//        FavouriteCollectionCard(
-//            text = R.string.fc1_blade_runner,
-//            drawable = R.drawable.blade_runner,
-//            modifier = Modifier.padding(8.dp)
-//        )
-//    }
-//}
-
-// Favourite Collection Grid
-
-//@Composable
-//fun FavouriteCollectionsGrid(
-//    modifier: Modifier = Modifier
-//) {
-//    LazyHorizontalGrid(
-//        rows = GridCells.Fixed(2),
-//        contentPadding = PaddingValues(horizontal = 16.dp),
-//        horizontalArrangement = Arrangement.spacedBy(16.dp),
-//        verticalArrangement = Arrangement.spacedBy(16.dp),
-//        modifier = modifier.height(168.dp)
-//    ) {
-//        items(favouriteCollectionsData) { item ->
-//            FavouriteCollectionCard(item.drawable, item.text, Modifier.height(80.dp))
-//        }
-//    }
-//}
-
-// Favourite Collection Card
+/*
+Favourite Collection Card
+Displays Favourite Movie data in a card element.
+*/
 @Composable
 fun FavouriteCollectionCard(
     movie: MoviesItem,
@@ -790,8 +767,10 @@ fun FavouriteCollectionCard(
     }
 }
 
-// Favourite Collection Grid
-
+/*
+Favourite Collection Grid
+Displays Favourite Collection Card element in Grid format.
+*/
 @Composable
 fun FavouriteCollectionsGrid(
     favouriteMovies: List<MoviesItem>,
@@ -819,8 +798,10 @@ fun FavouriteCollectionsGrid(
     }
 }
 
-// HomeScreen
-
+/*
+Home Screen
+Displays the Home Page elements.
+*/
 @Composable
 fun HomeScreen(
     navController: NavHostController,
@@ -854,6 +835,7 @@ fun HomeScreen(
     }
 }
 
+// Preview Composable
 @Preview(showBackground = true, backgroundColor = 0xFFF5F0EE, heightDp = 180)
 @Composable
 fun HomeScreenPreview() {
@@ -861,7 +843,9 @@ fun HomeScreenPreview() {
     POPcornTheme { HomeScreen(navController, favouritesViewModel = FavouritesViewModel()) }
 }
 
-// Bottom Navigation
+/*
+Bottom Navigation of the application.
+*/
 @Composable
 private fun POPcornBottomNavigation(navController: NavHostController, modifier: Modifier = Modifier) {
     NavigationBar(
@@ -901,6 +885,7 @@ private fun POPcornBottomNavigation(navController: NavHostController, modifier: 
     }
 }
 
+// Preview Composable
 @Preview(showBackground = true, backgroundColor = 0xFFF5F0EE)
 @Composable
 fun POPcornBottomNavigationPreview() {
@@ -908,8 +893,10 @@ fun POPcornBottomNavigationPreview() {
     POPcornTheme { POPcornBottomNavigation(navController, Modifier.padding(top = 24.dp)) }
 }
 
-// POPcorn Portrait
-
+/*
+POPcorn Portrait
+Displays main UI elements on the Home Page.
+*/
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun POPcornPortrait(
@@ -940,6 +927,7 @@ fun POPcornPortrait(
     }
 }
 
+// Preview Composable
 //@Preview(widthDp = 360, heightDp = 640)
 @Composable
 fun POPcornPortraitPreview(favouritesViewModel: FavouritesViewModel) {
@@ -955,7 +943,7 @@ val dashboardData = listOf(
     DashboardData(R.drawable.social, R.string.social)
 )
 
-// Favourites Collection Data
+// Favourite Movie Collection Data
 
 private val favouriteCollectionsData = listOf(
     R.drawable.blade_runner to R.string.fc1_blade_runner,
