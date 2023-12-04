@@ -94,6 +94,7 @@ class RegistrationActivity : ComponentActivity() {
                     userData["username"] = username
                     userData["firstName"] = firstName
                     userData["lastName"] = lastName
+                    userData["favorites"] = HashMap<String, Boolean>()
 
                     user?.uid?.let { userId ->
                         databaseReference.child("users").child(userId).setValue(userData)
