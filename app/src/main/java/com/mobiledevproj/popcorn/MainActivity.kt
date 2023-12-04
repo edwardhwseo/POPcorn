@@ -85,6 +85,10 @@ import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Card
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.TopAppBar
@@ -97,7 +101,13 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.database.*
+import kotlinx.coroutines.tasks.await
 
 /*
 The entry point for the POPcorn application.
@@ -114,7 +124,6 @@ class MainActivity : ComponentActivity() {
 
             getMovies { movies ->
                 moviesViewModel.movies = movies
-                navController.navigate("moviePage")
             }
 
             val onSignOut: () -> Unit = {
@@ -138,9 +147,37 @@ fun MoviePage(navController: NavHostController, moviesViewModel: MoviesViewModel
     val filteredList = movies.filter {
         it.title.contains(query, ignoreCase = true)
     }
-
     POPcornTheme {
         Scaffold(
+            topBar = {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(MaterialTheme.colorScheme.primary)
+                        .padding(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(
+                        onClick = { navController.popBackStack() },
+                        modifier = Modifier
+                            .padding(8.dp)
+                            .size(20.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.ArrowBack,
+                            contentDescription = "Back",
+                            tint = Color.White
+                        )
+                    }
+
+                    Text(
+                        text = "Back",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color.White,
+                        modifier = Modifier.padding(start = 8.dp)
+                    )
+                }
+            },
             bottomBar = { POPcornBottomNavigation(navController) }
         ) { padding ->
             Column(
@@ -148,13 +185,10 @@ fun MoviePage(navController: NavHostController, moviesViewModel: MoviesViewModel
                     .fillMaxSize()
                     .padding(horizontal = 16.dp)
             ) {
-                Spacer(Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(65.dp))
+
                 SearchBar(Modifier.padding(horizontal = 0.dp)) { newQuery ->
                     query = newQuery
-                }
-                Spacer(Modifier.height(16.dp))
-                Button(onClick = { navController.popBackStack() }, Modifier.padding(horizontal = 0.dp)) {
-                    Text("Back")
                 }
                 Spacer(Modifier.height(16.dp))
                 LazyColumn(
@@ -249,124 +283,265 @@ fun MovieDetails(
     favouritesViewModel: FavouritesViewModel
 ) {
     var isFavourite by remember { mutableStateOf(favouritesViewModel.isMovieInFavourites(movie)) }
-    Scaffold(
-        bottomBar = { POPcornBottomNavigation(navController) }
-    ) { padding ->
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(16.dp)
-    ) {
-        Button(
-            onClick = { navController.popBackStack() },
-            modifier = Modifier
-                .align(Alignment.Start)
-                .padding(bottom = 16.dp)
-        ) {
-            Text("Back")
-        }
+    var userRating by remember { mutableStateOf(0) }
+    var fetchedRating by remember { mutableStateOf(0) }
 
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(250.dp)
-                .clip(shape = RoundedCornerShape(12.dp))
-                .background(MaterialTheme.colorScheme.surface)
-        ) {
-            Image(
-                painter = rememberImagePainter(data = movie.images),
-                contentDescription = null,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize()
-            )
-        }
+    LaunchedEffect(Unit) {
+        val firebaseDatabase = FirebaseDatabase.getInstance()
+        val userId = FirebaseAuth.getInstance().currentUser?.uid
+        val movieRef = firebaseDatabase.getReference("ratings/${movie.id}/$userId")
 
-        Column(
-            modifier = Modifier
-                .padding(vertical = 16.dp)
-                .fillMaxWidth()
-        ) {
-            Text(
-                text = movie.title,
-                style = MaterialTheme.typography.headlineLarge,
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
-
-            Text(
-                text = movie.description,
-                style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.padding(bottom = 16.dp)
-            )
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text(
-                    text = "Rating: ${movie.rating}",
-                    style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier.weight(1f)
-                )
-
-                Text(
-                    text = "Year: ${movie.year}",
-                    style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier.weight(1f)
-                )
+        movieRef.addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                fetchedRating = snapshot.getValue(Int::class.java) ?: 0
+                userRating = fetchedRating
             }
 
-            Text(
-                text = "Genre: ${parseGenres(movie.genre)}",
-                style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.padding(top = 8.dp)
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Button(
-                onClick = {
-                    if (isFavourite) {
-                        favouritesViewModel.removeMovieFromFavourites(movie)
-                    } else {
-                        favouritesViewModel.addMovieToFavourites(movie)
-                    }
-
-                    isFavourite = favouritesViewModel.isMovieInFavourites(movie)
-                },
+            override fun onCancelled(error: DatabaseError) {
+            }
+        })
+    }
+POPcornTheme {
+    Scaffold(
+        topBar = {
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(56.dp)
-                    .padding(vertical = 8.dp)
+                    .background(MaterialTheme.colorScheme.primary)
+                    .padding(8.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(if (isFavourite) "Remove from Favourites" else "Add to Favourites")
+                IconButton(
+                    onClick = { navController.popBackStack() },
+                    modifier = Modifier
+                        .padding(8.dp)
+                        .size(20.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.ArrowBack,
+                        contentDescription = "Back",
+                        tint = Color.White
+                    )
+                }
+
+                Text(
+                    text = "Back",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.White,
+                    modifier = Modifier.padding(start = 8.dp)
+                )
+            }
+        },
+        bottomBar = { POPcornBottomNavigation(navController) }
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp)
+        ) {
+            Spacer(modifier = Modifier.height(50.dp))
+
+            // Box for the image and the favourites button
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(250.dp)
+                    .clip(shape = RoundedCornerShape(12.dp))
+                    .background(MaterialTheme.colorScheme.surface)
+            ) {
+                Image(
+                    painter = rememberImagePainter(data = movie.images),
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
+
+                Icon(
+                    imageVector = Icons.Default.Favorite,
+                    contentDescription = "Add to Favorites",
+                    tint = if (isFavourite) Color.Red else Color.White,
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(16.dp)
+                        .clickable {
+                            val isCurrentlyFavourite =
+                                favouritesViewModel.isMovieInFavourites(movie)
+                            if (isCurrentlyFavourite) {
+                                favouritesViewModel.removeMovieFromFavourites(movie)
+                            } else {
+                                favouritesViewModel.addMovieToFavourites(movie)
+                            }
+                            isFavourite = !isCurrentlyFavourite // Toggle the state
+                        }
+                )
+            }
+
+            Column(
+                modifier = Modifier
+                    .padding(vertical = 16.dp)
+                    .fillMaxWidth()
+            ) {
+                Text(
+                    text = movie.title,
+                    style = MaterialTheme.typography.headlineLarge,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+
+                Text(
+                    text = movie.description,
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = buildAnnotatedString {
+                            pushStyle(style = SpanStyle(fontWeight = FontWeight.Bold))
+                            append("Global Rating:")
+                            pop()
+                            append(" ${movie.rating / 2}")
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.weight(1f)
+                    )
+
+                    Text(
+                        text = buildAnnotatedString {
+                            pushStyle(style = SpanStyle(fontWeight = FontWeight.Bold))
+                            append("Year:")
+                            pop()
+                            append(" ${movie.year}")
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = buildAnnotatedString {
+                            pushStyle(style = SpanStyle(fontWeight = FontWeight.Bold))
+                            append("User Rating:")
+                            pop()
+                            append(" $fetchedRating")
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.weight(1f)
+                    )
+
+                    Text(
+                        text = buildAnnotatedString {
+                            pushStyle(style = SpanStyle(fontWeight = FontWeight.Bold))
+                            append("Genre:")
+                            pop()
+                            append(" ${parseGenres(movie.genre)}")
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Rating section
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    repeat(5) { index ->
+                        val isSelected = userRating > index
+                        Icon(
+                            imageVector = Icons.Default.Star,
+                            contentDescription = null,
+                            tint = if (isSelected) Color.Yellow else Color.Gray,
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clickable {
+                                    userRating = index + 1
+                                }
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Button(
+                    onClick = {
+                        val firebaseDatabase = FirebaseDatabase.getInstance()
+                        val userId = FirebaseAuth.getInstance().currentUser?.uid
+                        val movieRef = firebaseDatabase.getReference("ratings/${movie.id}/$userId")
+
+                        movieRef.setValue(userRating)
+                            .addOnSuccessListener {
+                                // Rating saved successfully
+                                // You can update the UI or show a confirmation message here
+                            }
+                            .addOnFailureListener { e ->
+                                // Handle any errors that occurred while saving the rating
+                            }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp)
+                        .padding(vertical = 8.dp)
+                ) {
+                    Text("Submit Rating")
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
             }
         }
     }
-    }
+}
 }
 
-// Favourites View Model
-
+/*
+Favourites View Model
+Contains functions to add and remove favourite movies.
+*/
 class FavouritesViewModel : ViewModel() {
+
+    private val auth: FirebaseAuth = FirebaseAuth.getInstance()
+    private val database: FirebaseDatabase = FirebaseDatabase.getInstance()
+    private val userId: String = auth.currentUser?.uid ?: ""
+    private val favouritesRef: DatabaseReference = database.reference.child("users").child(userId).child("favorites")
 
     private val _favouriteMovies = MutableLiveData<List<MoviesItem>>(emptyList())
     val favouriteMovies: LiveData<List<MoviesItem>> = _favouriteMovies
+
+    init {
+        favouritesRef.addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val movies = mutableListOf<MoviesItem>()
+                for (movieSnapshot in snapshot.children) {
+                    val movie = movieSnapshot.getValue(MoviesItem::class.java)
+                    movie?.let { movies.add(it) }
+                }
+                _favouriteMovies.value = movies
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+            }
+        })
+    }
 
     fun isMovieInFavourites(movie: MoviesItem): Boolean {
         return _favouriteMovies.value?.any { it.id == movie.id } ?: false
     }
 
     fun addMovieToFavourites(movie: MoviesItem) {
-        val currentFavourites = _favouriteMovies.value.orEmpty().toMutableList()
-        currentFavourites.add(movie)
-        _favouriteMovies.value = currentFavourites
+        favouritesRef.child(movie.id).setValue(movie)
     }
 
     fun removeMovieFromFavourites(movie: MoviesItem) {
-        val currentFavourites = _favouriteMovies.value.orEmpty().toMutableList()
-        currentFavourites.removeAll { it.id == movie.id }
-        _favouriteMovies.value = currentFavourites
+        favouritesRef.child(movie.id).removeValue()
     }
 }
 
@@ -378,13 +553,43 @@ Social Page
 fun SocialPage(navController: NavHostController) {
     POPcornTheme {
         Scaffold(
+            topBar = {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(MaterialTheme.colorScheme.primary)
+                        .padding(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(
+                        onClick = { navController.popBackStack() },
+                        modifier = Modifier
+                            .padding(8.dp)
+                            .size(20.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.ArrowBack,
+                            contentDescription = "Back",
+                            tint = Color.White
+                        )
+                    }
+
+                    Text(
+                        text = "Back",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color.White,
+                        modifier = Modifier.padding(start = 8.dp)
+                    )
+                }
+            },
             bottomBar = { POPcornBottomNavigation(navController) }
         ) { padding ->
-            Column {
+            Column(
+                modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 16.dp)) {
                 Spacer(Modifier.height(16.dp))
-                Button(onClick = { navController.popBackStack() }, Modifier.padding(horizontal = 16.dp)) {
-                    Text("Back")
-                }
+
                 Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
@@ -404,16 +609,63 @@ Displays user data.
 */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ProfilePage(navController: NavHostController) {
+fun ProfilePage(navController: NavHostController, onSignOut: () -> Unit) {
+    val firebaseAuth = FirebaseAuth.getInstance()
+    val currentUser = firebaseAuth.currentUser
+
+    var username by remember { mutableStateOf("") }
+    var firstName by remember { mutableStateOf("") }
+    var lastName by remember { mutableStateOf("") }
+
+    // Fetch the username
+    LaunchedEffect(Unit) {
+        if (currentUser != null) {
+            val userRef = FirebaseDatabase.getInstance().getReference("users/${currentUser.uid}")
+            val dataSnapshot = userRef.get().await()
+
+            if (dataSnapshot.exists()) {
+                username = dataSnapshot.child("username").getValue(String::class.java) ?: ""
+                firstName = dataSnapshot.child("firstName").getValue(String::class.java) ?: ""
+                lastName = dataSnapshot.child("lastName").getValue(String::class.java) ?: ""
+            }
+        }
+    }
     POPcornTheme {
         Scaffold(
+            topBar = {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(MaterialTheme.colorScheme.primary)
+                        .padding(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(
+                        onClick = { navController.popBackStack() },
+                        modifier = Modifier
+                            .padding(8.dp)
+                            .size(20.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.ArrowBack,
+                            contentDescription = "Back",
+                            tint = Color.White
+                        )
+                    }
+
+                    Text(
+                        text = "Back",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color.White,
+                        modifier = Modifier.padding(start = 8.dp)
+                    )
+                }
+            },
             bottomBar = { POPcornBottomNavigation(navController) }
         ) { padding ->
-            Column {
-                Spacer(Modifier.height(16.dp))
-                Button(onClick = { navController.popBackStack() }, Modifier.padding(horizontal = 16.dp)) {
-                    Text("Back")
-                }
+            Column(modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 16.dp)) {
                 Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
@@ -422,7 +674,6 @@ fun ProfilePage(navController: NavHostController) {
                         verticalArrangement = Arrangement.Center,
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Text("Profile Page")
                         Image(
                             painter = painterResource(id = R.drawable.christian_bale),
                             contentDescription = "Profile Icon",
@@ -430,6 +681,16 @@ fun ProfilePage(navController: NavHostController) {
                                 .size(128.dp)
                                 .clip(CircleShape)
                         )
+                        Spacer(Modifier.height(16.dp))
+
+                        Text("Username: $username")
+                        Text("First name: $firstName")
+                        Text("Last name: $lastName")
+
+                        Spacer(Modifier.height(16.dp))
+                        Button(onClick = onSignOut) {
+                            Text("Sign Out")
+                        }
                     }
                 }
             }
@@ -447,11 +708,7 @@ fun AppNavigator(navController: NavHostController, favouritesViewModel: Favourit
 
     NavHost(navController, startDestination = "popcornPortrait") {
         composable("popcornPortrait") {
-            POPcornPortrait(navController, favouritesViewModel, onSignOut = {
-                val intent = Intent(context, LoginActivity::class.java)
-                intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-                context.startActivity(intent)
-            } )
+            POPcornPortrait(navController, favouritesViewModel)
         }
         composable("moviePage") {
             MoviePage(navController, moviesViewModel)
@@ -470,7 +727,11 @@ fun AppNavigator(navController: NavHostController, favouritesViewModel: Favourit
             SocialPage(navController)
         }
         composable("profilePage") {
-            ProfilePage(navController)
+            ProfilePage(navController, onSignOut = {
+                val intent = Intent(context, LoginActivity::class.java)
+                intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                context.startActivity(intent)
+            } )
         }
     }
 }
@@ -901,28 +1162,52 @@ Displays main UI elements on the Home Page.
 @Composable
 fun POPcornPortrait(
     navController: NavHostController,
-    favouritesViewModel: FavouritesViewModel,
-    onSignOut: () -> Unit
+    favouritesViewModel: FavouritesViewModel
 ){
+    val firebaseAuth = FirebaseAuth.getInstance()
+    val currentUser = firebaseAuth.currentUser
+
+    var username by remember { mutableStateOf("") }
+
+    // Fetch the username
+    LaunchedEffect(Unit) {
+        if (currentUser != null) {
+            val userRef = FirebaseDatabase.getInstance().getReference("users/${currentUser.uid}/username")
+            val dataSnapshot = userRef.get().await()
+
+            if (dataSnapshot.exists()) {
+                username = dataSnapshot.getValue(String::class.java) ?: ""
+            }
+        }
+    }
+
     POPcornTheme {
         Scaffold(
             topBar = {
-                TopAppBar(title = { Text(text = stringResource(R.string.app_name)) }, actions = {
-                    Box(
-                        modifier = Modifier
-                            .size(40.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.surface)) {
-                        IconButton(onClick = onSignOut) {
-                            Icon(Icons.Default.AccountCircle, contentDescription = null)
-                        }
-                    }
-                    Text(text = "Sign Out")
-                })
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(MaterialTheme.colorScheme.primary)
+                        .padding(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Welcome, $username",
+                        style = MaterialTheme.typography.headlineMedium,
+                        color = Color.White,
+                        modifier = Modifier.padding(start = 8.dp)
+                    )
+                }
             },
             bottomBar = { POPcornBottomNavigation(navController) }
         ) { padding ->
-            HomeScreen(navController, favouritesViewModel)
+            Column(
+                modifier = Modifier
+                    .padding(top = 8.dp)
+                    .fillMaxSize()
+            ) {
+                HomeScreen(navController, favouritesViewModel)
+            }
         }
     }
 }
@@ -932,7 +1217,7 @@ fun POPcornPortrait(
 @Composable
 fun POPcornPortraitPreview(favouritesViewModel: FavouritesViewModel) {
     val navController = rememberNavController()
-    POPcornPortrait(navController, favouritesViewModel, onSignOut = {})
+    POPcornPortrait(navController, favouritesViewModel)
 }
 
 // Dashboard Items

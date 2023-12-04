@@ -15,8 +15,11 @@ data class MoviesItem(
     @SerializedName("images")
     val images: String,
     @SerializedName("rating")
-    val rating: Number,
+    val rating: Double = 0.0,
     @SerializedName("year")
     val year: String
-)
-
+) {
+    constructor() : this(
+        "", "", "", "", "", "", 0.0, "" // Initialize default values
+    )
+}
