@@ -582,7 +582,7 @@ POPcornTheme {
                         Text("Submit Rating")
                     }
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(20.dp))
                 }
             }
         }
@@ -849,6 +849,8 @@ class FavouritesViewModel : ViewModel() {
 
 /*
 Social Page
+Displays Users of the application that can be
+added to their Connections.
 */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -1074,6 +1076,8 @@ fun SocialPage(navController: NavHostController, windowSize: WindowWidthSizeClas
                                     ) {
                                         Text(if (added) "Remove" else "Add")
                                     }
+
+                                    Spacer(modifier = Modifier.height(16.dp))
                                 }
                             }
                         }
@@ -1092,7 +1096,7 @@ data class User(
 
 /*
 Profile Page
-Displays user data.
+Displays user data and includes Sign out button.
 */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
