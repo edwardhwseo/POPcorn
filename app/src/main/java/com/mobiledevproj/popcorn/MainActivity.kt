@@ -108,6 +108,8 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -851,6 +853,66 @@ Social Page
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SocialPage(navController: NavHostController) {
+    val auth = FirebaseAuth.getInstance()
+    val database = FirebaseDatabase.getInstance()
+    val currentUser = auth.currentUser
+
+    val usersRef = database.reference.child("users")
+
+    val userList = remember { mutableStateOf<List<User>>(emptyList()) }
+    val searchQuery = remember { mutableStateOf("") }
+
+    LaunchedEffect(Unit) {
+        usersRef.addListenerForSingleValueEvent(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val users = mutableListOf<User>()
+                for (userSnapshot in snapshot.children) {
+                    val userId = userSnapshot.key ?: ""
+                    val userName = userSnapshot.child("username").value.toString()
+                    val user = User(userId, userName)
+                    users.add(user)
+                }
+                userList.value = users
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+            }
+        })
+    }
+
+    val addedUsers = remember { mutableSetOf<String>() }
+    val addedUsersState = remember { mutableStateMapOf<String, Boolean>() }
+
+    LaunchedEffect(userList.value) {
+        userList.value.forEach { user ->
+            addedUsersState[user.id] = addedUsers.contains(user.id)
+        }
+    }
+
+    fun addUserAsFriend(userId: String, isAdded: Boolean) {
+        currentUser?.uid?.let { currentUserId ->
+            val currentUserConnectionsRef = usersRef.child(currentUserId).child("connections")
+
+            if (isAdded) {
+                currentUserConnectionsRef.orderByValue().equalTo(userId)
+                    .addListenerForSingleValueEvent(object : ValueEventListener {
+                        override fun onDataChange(snapshot: DataSnapshot) {
+                            snapshot.children.forEach { it.ref.removeValue() }
+                            addedUsers.remove(userId)
+                            addedUsersState[userId] = false
+                        }
+
+                        override fun onCancelled(error: DatabaseError) {
+                        }
+                    })
+            } else {
+                currentUserConnectionsRef.push().setValue(userId)
+                addedUsers.add(userId)
+                addedUsersState[userId] = true
+            }
+        }
+    }
+
     POPcornTheme {
             Scaffold(
                 topBar = {
@@ -889,20 +951,67 @@ fun SocialPage(navController: NavHostController) {
                         .fillMaxSize()
                         .padding(horizontal = 16.dp)) {
                     Spacer(Modifier.height(16.dp))
+                    Text(
+                        text = "Back",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color.White,
+                        modifier = Modifier.padding(start = 8.dp)
+                    )
+                }
+            },
+            bottomBar = { POPcornBottomNavigation(navController) }
+        ) { padding ->
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 16.dp)
+            ) {
+                Spacer(Modifier.height(60.dp))
 
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column {
-                            Text("Social Page")
+                TextField(
+                    value = searchQuery.value,
+                    onValueChange = { searchQuery.value = it },
+                    label = { Text("Search for users") },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 16.dp)
+                )
+
+                val filteredUsers = userList.value.filter {
+                    it.name.contains(searchQuery.value, ignoreCase = true)
+                }
+
+                LazyColumn {
+                    items(filteredUsers) { user ->
+                        val added = addedUsersState[user.id] ?: false
+
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(text = user.name)
+                            Spacer(modifier = Modifier.weight(1f))
+                            Button(
+                                onClick = { addUserAsFriend(user.id, added) },
+                                modifier = Modifier.padding(start = 8.dp)
+                            ) {
+                                Text(if (added) "Remove" else "Add")
+                            }
+
                         }
                     }
                 }
             }
-
     }
 }
+
+// User Data Class
+data class User(
+    val id: String,
+    val name: String,
+)
 
 /*
 Profile Page
