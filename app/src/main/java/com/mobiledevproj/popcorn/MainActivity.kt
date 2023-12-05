@@ -852,7 +852,7 @@ Social Page
 */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SocialPage(navController: NavHostController) {
+fun SocialPage(navController: NavHostController, windowSize: WindowWidthSizeClass) {
     val auth = FirebaseAuth.getInstance()
     val database = FirebaseDatabase.getInstance()
     val currentUser = auth.currentUser
@@ -914,6 +914,7 @@ fun SocialPage(navController: NavHostController) {
     }
 
     POPcornTheme {
+        if(windowSize == WindowWidthSizeClass.Compact || windowSize == WindowWidthSizeClass.Medium){
             Scaffold(
                 topBar = {
                     Row(
@@ -935,7 +936,6 @@ fun SocialPage(navController: NavHostController) {
                                 tint = Color.White
                             )
                         }
-
                         Text(
                             text = "Back",
                             style = MaterialTheme.typography.bodySmall,
@@ -949,61 +949,138 @@ fun SocialPage(navController: NavHostController) {
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(horizontal = 16.dp)) {
-                    Spacer(Modifier.height(16.dp))
-                    Text(
-                        text = "Back",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Color.White,
-                        modifier = Modifier.padding(start = 8.dp)
+                        .padding(horizontal = 16.dp)
+                ) {
+                    Spacer(Modifier.height(60.dp))
+
+                    TextField(
+                        value = searchQuery.value,
+                        onValueChange = { searchQuery.value = it },
+                        label = { Text("Search for users") },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 16.dp)
                     )
-                }
-            },
-            bottomBar = { POPcornBottomNavigation(navController) }
-        ) { padding ->
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 16.dp)
-            ) {
-                Spacer(Modifier.height(60.dp))
 
-                TextField(
-                    value = searchQuery.value,
-                    onValueChange = { searchQuery.value = it },
-                    label = { Text("Search for users") },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 16.dp)
-                )
+                    val filteredUsers = userList.value.filter {
+                        it.name.contains(searchQuery.value, ignoreCase = true)
+                    }
 
-                val filteredUsers = userList.value.filter {
-                    it.name.contains(searchQuery.value, ignoreCase = true)
-                }
+                    LazyColumn {
+                        items(filteredUsers) { user ->
+                            val added = addedUsersState[user.id] ?: false
 
-                LazyColumn {
-                    items(filteredUsers) { user ->
-                        val added = addedUsersState[user.id] ?: false
-
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(text = user.name)
-                            Spacer(modifier = Modifier.weight(1f))
-                            Button(
-                                onClick = { addUserAsFriend(user.id, added) },
-                                modifier = Modifier.padding(start = 8.dp)
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text(if (added) "Remove" else "Add")
+                                Text(text = user.name)
+                                Spacer(modifier = Modifier.weight(1f))
+                                Button(
+                                    onClick = { addUserAsFriend(user.id, added) },
+                                    modifier = Modifier.padding(start = 8.dp)
+                                ) {
+                                    Text(if (added) "Remove" else "Add")
+                                }
                             }
-
                         }
                     }
                 }
             }
+        } else {
+            PermanentNavigationDrawer(drawerContent = {
+                PermanentDrawerSheet {
+                    Text("POPcorn")
+                    Divider()
+                    NavigationDrawerItem(
+                        label = {Text(stringResource(R.string.bottom_navigation_home))},
+                        selected = false,
+                        onClick = {navController.navigate("popcornPortrait")}
+                    )
+                    NavigationDrawerItem(
+                        label = {Text(stringResource(R.string.bottom_navigation_profile))},
+                        selected = false,
+                        onClick = {navController.navigate("profilePage")}
+                    )
+                }
+            }) {
+                Scaffold(
+                    topBar = {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(MaterialTheme.colorScheme.primary)
+                                .padding(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            IconButton(
+                                onClick = { navController.popBackStack() },
+                                modifier = Modifier
+                                    .padding(8.dp)
+                                    .size(20.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.ArrowBack,
+                                    contentDescription = "Back",
+                                    tint = Color.White
+                                )
+                            }
+                            Text(
+                                text = "Back",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Color.White,
+                                modifier = Modifier.padding(start = 8.dp)
+                            )
+                        }
+                    }
+                ) { padding ->
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(horizontal = 16.dp)
+                    ) {
+                        Spacer(Modifier.height(60.dp))
+
+                        TextField(
+                            value = searchQuery.value,
+                            onValueChange = { searchQuery.value = it },
+                            label = { Text("Search for users") },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 16.dp)
+                        )
+
+                        val filteredUsers = userList.value.filter {
+                            it.name.contains(searchQuery.value, ignoreCase = true)
+                        }
+
+                        LazyColumn {
+                            items(filteredUsers) { user ->
+                                val added = addedUsersState[user.id] ?: false
+
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(text = user.name)
+                                    Spacer(modifier = Modifier.weight(1f))
+                                    Button(
+                                        onClick = { addUserAsFriend(user.id, added) },
+                                        modifier = Modifier.padding(start = 8.dp)
+                                    ) {
+                                        Text(if (added) "Remove" else "Add")
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -1217,7 +1294,7 @@ fun AppNavigator(navController: NavHostController, favouritesViewModel: Favourit
             }
         }
         composable("socialPage") {
-            SocialPage(navController)
+            SocialPage(navController, windowSize)
         }
         composable("profilePage") {
             ProfilePage(navController, onSignOut = {
