@@ -87,6 +87,7 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Card
@@ -100,6 +101,7 @@ import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSiz
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import org.json.JSONArray
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.rememberImagePainter
@@ -113,6 +115,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.*
@@ -130,6 +133,7 @@ class MainActivity : ComponentActivity() {
             val navController = rememberNavController()
             val moviesViewModel: MoviesViewModel = viewModel()
             val favouritesViewModel by viewModels<FavouritesViewModel>()
+            val watchlistViewModel by viewModels<WatchlistViewModel>()
             val context: Context = this
             val windowSize = calculateWindowSizeClass(activity = (this))
 
@@ -141,7 +145,7 @@ class MainActivity : ComponentActivity() {
                 navController.navigate("sign_in")
             }
 
-            AppNavigator(navController, favouritesViewModel, context, windowSize.widthSizeClass)
+            AppNavigator(navController, favouritesViewModel, watchlistViewModel, context, windowSize.widthSizeClass)
         }
     }
 }
@@ -185,8 +189,13 @@ fun MoviePage(navController: NavHostController, moviesViewModel: MoviesViewModel
                         Text(
                             text = "Back",
                             style = MaterialTheme.typography.bodySmall,
+                            color = Color.White
+                        )
+                        Text(
+                            text = "Movies",
+                            style = MaterialTheme.typography.headlineMedium,
                             color = Color.White,
-                            modifier = Modifier.padding(start = 8.dp)
+                            modifier = Modifier.weight(1f).padding(start = 75.dp)
                         )
                     }
                 },
@@ -366,9 +375,11 @@ fun MovieDetails(
     movie: MoviesItem,
     navController: NavHostController,
     favouritesViewModel: FavouritesViewModel,
+    watchlistViewModel: WatchlistViewModel,
     windowSize: WindowWidthSizeClass
 ) {
     var isFavourite by remember { mutableStateOf(favouritesViewModel.isMovieInFavourites(movie)) }
+    var isInWatchlist by remember { mutableStateOf(watchlistViewModel.isMovieInWatchlist(movie)) }
     var userRating by remember { mutableStateOf(0) }
     var fetchedRating by remember { mutableStateOf(0) }
 
@@ -414,8 +425,7 @@ POPcornTheme {
                     Text(
                         text = "Back",
                         style = MaterialTheme.typography.bodySmall,
-                        color = Color.White,
-                        modifier = Modifier.padding(start = 8.dp)
+                        color = Color.White
                     )
                 }
             },
@@ -429,7 +439,7 @@ POPcornTheme {
             ) {
                 Spacer(modifier = Modifier.height(50.dp))
 
-                // Box for the image and the favourites button
+                // Box for the image, favourites button, and watchlist button
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -462,6 +472,27 @@ POPcornTheme {
                                 isFavourite = !isCurrentlyFavourite // Toggle the state
                             }
                     )
+
+                    // To-watch list icon
+                    Icon(
+                        imageVector = Icons.Default.DateRange,
+                        contentDescription = "Add to Watchlist",
+                        tint = if (isInWatchlist) Color.Green else Color.White,
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .padding(16.dp)
+                            .clickable {
+                                val isCurrentlyInWatchlist = watchlistViewModel.isMovieInWatchlist(movie)
+
+                                if (isCurrentlyInWatchlist) {
+                                    watchlistViewModel.removeFromWatchlist(movie)
+                                } else {
+                                    watchlistViewModel.addToWatchlist(movie)
+                                }
+                                isInWatchlist = !isCurrentlyInWatchlist // Toggle the state
+                            }
+                    )
+
                 }
 
                 Column(
@@ -848,7 +879,53 @@ class FavouritesViewModel : ViewModel() {
 }
 
 /*
+WatchlistViewModel
+Contains functions to add and remove movies from a users watchlist.
+ */
+class WatchlistViewModel : ViewModel() {
+
+    private val auth: FirebaseAuth = FirebaseAuth.getInstance()
+    private val database: FirebaseDatabase = FirebaseDatabase.getInstance()
+    private val userId: String = auth.currentUser?.uid ?: ""
+    private val watchlistRef: DatabaseReference = database.reference.child("users").child(userId).child("watchlist")
+
+    private val _watchlistMovies = MutableLiveData<List<MoviesItem>>(emptyList())
+    val watchlistMovies: LiveData<List<MoviesItem>> = _watchlistMovies
+
+    init {
+        watchlistRef.addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val movies = mutableListOf<MoviesItem>()
+                for (movieSnapshot in snapshot.children) {
+                    val movie = movieSnapshot.getValue(MoviesItem::class.java)
+                    movie?.let { movies.add(it) }
+                }
+                _watchlistMovies.value = movies
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                // Handle error
+            }
+        })
+    }
+
+    fun isMovieInWatchlist(movie: MoviesItem): Boolean {
+        return _watchlistMovies.value?.any { it.id == movie.id } ?: false
+    }
+
+    fun addToWatchlist(movie: MoviesItem) {
+        watchlistRef.child(movie.id).setValue(movie)
+    }
+
+    fun removeFromWatchlist(movie: MoviesItem) {
+        watchlistRef.child(movie.id).removeValue()
+    }
+}
+
+/*
 Social Page
+Displays Users of the application that can be
+added to a Connections list.
 */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -939,8 +1016,13 @@ fun SocialPage(navController: NavHostController, windowSize: WindowWidthSizeClas
                         Text(
                             text = "Back",
                             style = MaterialTheme.typography.bodySmall,
+                            color = Color.White
+                        )
+                        Text(
+                            text = "Connections",
+                            style = MaterialTheme.typography.headlineMedium,
                             color = Color.White,
-                            modifier = Modifier.padding(start = 8.dp)
+                            modifier = Modifier.weight(1f).padding(start = 46.dp)
                         )
                     }
                 },
@@ -1091,6 +1173,91 @@ data class User(
 )
 
 /*
+Watchlist Page
+Displays movies that the user has added to their watchlist.
+*/
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun WatchlistPage(
+    navController: NavHostController,
+    watchlistViewModel: WatchlistViewModel,
+    windowSize: WindowWidthSizeClass
+) {
+    val watchlistMovies: List<MoviesItem> by watchlistViewModel.watchlistMovies.observeAsState(emptyList())
+
+    POPcornTheme {
+        Scaffold(
+            topBar = {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(MaterialTheme.colorScheme.primary)
+                        .padding(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(
+                        onClick = { navController.popBackStack() },
+                        modifier = Modifier
+                            .padding(8.dp)
+                            .size(20.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.ArrowBack,
+                            contentDescription = "Back",
+                            tint = Color.White
+                        )
+                    }
+
+                    Text(
+                        text = "Back",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color.White
+                    )
+                    Text(
+                        text = "Watchlist",
+                        style = MaterialTheme.typography.headlineMedium,
+                        color = Color.White,
+                        modifier = Modifier.weight(1f).padding(start = 60.dp)
+                    )
+                }
+            },
+            bottomBar = {
+                POPcornBottomNavigation(navController)
+            }
+        ) { padding ->
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 16.dp)
+            ) {
+                Spacer(modifier = Modifier.height(65.dp))
+
+                if (watchlistMovies.isEmpty()) {
+                    Text(
+                        text = "No movies in watchlist!",
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 16.dp),
+                        textAlign = TextAlign.Center
+                    )
+                } else {
+                    LazyColumn(
+                        modifier = Modifier.weight(1f),
+                        contentPadding = PaddingValues(horizontal = 0.dp)
+                    ) {
+                        items(watchlistMovies) { movie ->
+                            MovieCard(movie, navController = navController)
+                            Spacer(modifier = Modifier.height(16.dp))
+                        }
+                    }
+                }
+                Spacer(Modifier.height(80.dp))
+            }
+        }
+    }
+}
+
+/*
 Profile Page
 Displays user data.
 */
@@ -1144,8 +1311,13 @@ fun ProfilePage(navController: NavHostController, onSignOut: () -> Unit, windowS
                         Text(
                             text = "Back",
                             style = MaterialTheme.typography.bodySmall,
+                            color = Color.White
+                        )
+                        Text(
+                            text = "Profile",
+                            style = MaterialTheme.typography.headlineMedium,
                             color = Color.White,
-                            modifier = Modifier.padding(start = 8.dp)
+                            modifier = Modifier.weight(1f).padding(start = 80.dp)
                         )
                     }
                 },
@@ -1154,16 +1326,17 @@ fun ProfilePage(navController: NavHostController, onSignOut: () -> Unit, windowS
                 Column(modifier = Modifier
                     .fillMaxSize()
                     .padding(horizontal = 16.dp)) {
+                    Spacer(Modifier.height(100.dp))
                     Box(
                         modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
+                        contentAlignment = Alignment.TopCenter
                     ) {
                         Column(
                             verticalArrangement = Arrangement.Center,
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             Image(
-                                painter = painterResource(id = R.drawable.christian_bale),
+                                painter = painterResource(id = R.drawable.drive),
                                 contentDescription = "Profile Icon",
                                 modifier = Modifier
                                     .size(128.dp)
@@ -1273,7 +1446,7 @@ App Navigator
 Facilitates navigation within the application.
 */
 @Composable
-fun AppNavigator(navController: NavHostController, favouritesViewModel: FavouritesViewModel, context: Context, windowSize: WindowWidthSizeClass) {
+fun AppNavigator(navController: NavHostController, favouritesViewModel: FavouritesViewModel, watchlistViewModel: WatchlistViewModel, context: Context, windowSize: WindowWidthSizeClass) {
     val moviesViewModel: MoviesViewModel = viewModel()
 
     NavHost(navController, startDestination = "popcornPortrait") {
@@ -1288,13 +1461,16 @@ fun AppNavigator(navController: NavHostController, favouritesViewModel: Favourit
             val selectedMovie = moviesViewModel.movies?.find { it.id == movieId }
 
             if (selectedMovie != null) {
-                MovieDetails(selectedMovie, navController, favouritesViewModel, windowSize)
+                MovieDetails(selectedMovie, navController, favouritesViewModel, watchlistViewModel, windowSize)
             } else {
                 Text("Movie not found")
             }
         }
         composable("socialPage") {
             SocialPage(navController, windowSize)
+        }
+        composable("watchlistPage") {
+            WatchlistPage(navController, watchlistViewModel, windowSize)
         }
         composable("profilePage") {
             ProfilePage(navController, onSignOut = {
@@ -1448,7 +1624,7 @@ fun SearchBar(
     )
 }
 
-// Preview Composable
+//Preview Composable
 //@Preview(showBackground = true, backgroundColor = 0xFFF5F0EE)
 //@Composable
 //fun SearchBarPreview() {
@@ -1509,6 +1685,20 @@ fun POPcornElementPreview() {
 Dashboard Row
 Displays homepage POPcorn element in row format.
  */
+//@Composable
+//fun DashboardRow(navController: NavHostController, modifier: Modifier = Modifier) {
+//    LazyRow(
+//        horizontalArrangement = Arrangement.spacedBy(8.dp),
+//        contentPadding = PaddingValues(horizontal = 16.dp),
+//        modifier = modifier
+//    ) {
+//        items(dashboardData) { item ->
+//            val destination = if (item.text == R.string.movies) "moviePage" else "socialPage"
+//            POPcornElement(item.drawable, item.text, destination, navController)
+//        }
+//    }
+//}
+
 @Composable
 fun DashboardRow(navController: NavHostController, modifier: Modifier = Modifier) {
     LazyRow(
@@ -1517,7 +1707,12 @@ fun DashboardRow(navController: NavHostController, modifier: Modifier = Modifier
         modifier = modifier
     ) {
         items(dashboardData) { item ->
-            val destination = if (item.text == R.string.movies) "moviePage" else "socialPage"
+            val destination = when (item.text) {
+                R.string.movies -> "moviePage"
+                R.string.social -> "socialPage"
+                R.string.watchlist -> "watchlistPage"
+                else -> "defaultDestination" // You can set a default destination or handle other cases
+            }
             POPcornElement(item.drawable, item.text, destination, navController)
         }
     }
@@ -1843,6 +2038,7 @@ data class DashboardData(@DrawableRes val drawable: Int, @StringRes val text: In
 
 val dashboardData = listOf(
     DashboardData(R.drawable.movie, R.string.movies),
+    DashboardData(R.drawable.watchlist, R.string.watchlist),
     DashboardData(R.drawable.social, R.string.social)
 )
 
