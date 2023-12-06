@@ -3,6 +3,7 @@
     <string name="placeholder_search">Search POPcorn</string>
     <string name="movies">Movies</string>
     <string name="social">Social</string>
+    <string name="watchlist">Watchlist</string>
     <string name="Dashboard">Dashboard</string>
     <string name="favourite_collection">Favourite Movies</string>
     <string name="fc1_blade_runner">Blade Runner</string>
