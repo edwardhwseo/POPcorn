@@ -925,7 +925,7 @@ class WatchlistViewModel : ViewModel() {
 /*
 Social Page
 Displays Users of the application that can be
-added to a Connections list.
+added to their Connections.
 */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
