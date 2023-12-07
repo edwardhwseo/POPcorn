@@ -81,6 +81,7 @@ import okhttp3.Response
 import java.io.IOException
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -96,6 +97,8 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.NavigationDrawerItem
 import androidx.compose.material3.PermanentDrawerSheet
 import androidx.compose.material3.PermanentNavigationDrawer
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
@@ -111,7 +114,6 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateMapOf
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -126,6 +128,7 @@ The entry point for the POPcorn application.
 It initializes the UI and handles navigation using Jetpack Compose.
  */
 class MainActivity : ComponentActivity() {
+    private val themeViewModel: ThemeViewModel by viewModels()
     @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -145,8 +148,31 @@ class MainActivity : ComponentActivity() {
                 navController.navigate("sign_in")
             }
 
-            AppNavigator(navController, favouritesViewModel, watchlistViewModel, context, windowSize.widthSizeClass)
+            val isDarkModeEnabled by themeViewModel.isDarkModeEnabled.observeAsState(initial = false)
+
+            AppNavigator(
+                navController,
+                favouritesViewModel,
+                watchlistViewModel,
+                context,
+                windowSize.widthSizeClass,
+                isDarkModeEnabled,
+                onToggleDarkMode = { themeViewModel.toggleDarkMode() }
+            )
         }
+    }
+}
+
+/*
+A View model to keep track of
+the theme based on the state of the dark mode switch.
+ */
+class ThemeViewModel : ViewModel() {
+    private val _isDarkModeEnabled = MutableLiveData<Boolean>(false)
+    val isDarkModeEnabled: LiveData<Boolean> = _isDarkModeEnabled
+
+    fun toggleDarkMode() {
+        _isDarkModeEnabled.value = !_isDarkModeEnabled.value!!
     }
 }
 
@@ -156,13 +182,18 @@ Displays movie data in a list.
 */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MoviePage(navController: NavHostController, moviesViewModel: MoviesViewModel, windowSize: WindowWidthSizeClass) {
+fun MoviePage(
+    navController: NavHostController,
+    moviesViewModel: MoviesViewModel,
+    windowSize: WindowWidthSizeClass,
+    isDarkModeEnabled: Boolean) {
     val movies = moviesViewModel.movies ?: emptyList()
     var query by remember { mutableStateOf("") }
     val filteredList = movies.filter {
         it.title.contains(query, ignoreCase = true)
     }
-    POPcornTheme {
+    val topBarContentColor = if (isDarkModeEnabled) Color.Black else Color.White
+    POPcornTheme(darkTheme = isDarkModeEnabled) {
         if(windowSize == WindowWidthSizeClass.Compact || windowSize == WindowWidthSizeClass.Medium) {
             Scaffold(
                 topBar = {
@@ -182,19 +213,19 @@ fun MoviePage(navController: NavHostController, moviesViewModel: MoviesViewModel
                             Icon(
                                 imageVector = Icons.Default.ArrowBack,
                                 contentDescription = "Back",
-                                tint = Color.White
+                                tint = topBarContentColor
                             )
                         }
 
                         Text(
                             text = "Back",
                             style = MaterialTheme.typography.bodySmall,
-                            color = Color.White
+                            color = topBarContentColor
                         )
                         Text(
                             text = "Movies",
                             style = MaterialTheme.typography.headlineMedium,
-                            color = Color.White,
+                            color = topBarContentColor,
                             modifier = Modifier.weight(1f).padding(start = 75.dp)
                         )
                     }
@@ -376,12 +407,14 @@ fun MovieDetails(
     navController: NavHostController,
     favouritesViewModel: FavouritesViewModel,
     watchlistViewModel: WatchlistViewModel,
-    windowSize: WindowWidthSizeClass
+    windowSize: WindowWidthSizeClass,
+    isDarkModeEnabled: Boolean
 ) {
     var isFavourite by remember { mutableStateOf(favouritesViewModel.isMovieInFavourites(movie)) }
     var isInWatchlist by remember { mutableStateOf(watchlistViewModel.isMovieInWatchlist(movie)) }
     var userRating by remember { mutableStateOf(0) }
     var fetchedRating by remember { mutableStateOf(0) }
+    val topBarContentColor = if (isDarkModeEnabled) Color.Black else Color.White
 
     LaunchedEffect(Unit) {
         val firebaseDatabase = FirebaseDatabase.getInstance()
@@ -398,7 +431,7 @@ fun MovieDetails(
             }
         })
     }
-POPcornTheme {
+POPcornTheme(darkTheme = isDarkModeEnabled) {
     if(windowSize == WindowWidthSizeClass.Compact || windowSize == WindowWidthSizeClass.Medium) {
         Scaffold(
             topBar = {
@@ -418,14 +451,14 @@ POPcornTheme {
                         Icon(
                             imageVector = Icons.Default.ArrowBack,
                             contentDescription = "Back",
-                            tint = Color.White
+                            tint = topBarContentColor
                         )
                     }
 
                     Text(
                         text = "Back",
                         style = MaterialTheme.typography.bodySmall,
-                        color = Color.White
+                        color = topBarContentColor
                     )
                 }
             },
@@ -454,6 +487,7 @@ POPcornTheme {
                         modifier = Modifier.fillMaxSize()
                     )
 
+                    // Favourite icon
                     Icon(
                         imageVector = Icons.Default.Favorite,
                         contentDescription = "Add to Favorites",
@@ -473,7 +507,7 @@ POPcornTheme {
                             }
                     )
 
-                    // To-watch list icon
+                    // Watchlist icon
                     Icon(
                         imageVector = Icons.Default.DateRange,
                         contentDescription = "Add to Watchlist",
@@ -929,10 +963,14 @@ added to their Connections.
 */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SocialPage(navController: NavHostController, windowSize: WindowWidthSizeClass) {
+fun SocialPage(
+    navController: NavHostController,
+    windowSize: WindowWidthSizeClass,
+    isDarkModeEnabled: Boolean) {
     val auth = FirebaseAuth.getInstance()
     val database = FirebaseDatabase.getInstance()
     val currentUser = auth.currentUser
+    val topBarContentColor = if (isDarkModeEnabled) Color.Black else Color.White
 
     val usersRef = database.reference.child("users")
 
@@ -990,7 +1028,7 @@ fun SocialPage(navController: NavHostController, windowSize: WindowWidthSizeClas
         }
     }
 
-    POPcornTheme {
+    POPcornTheme(darkTheme = isDarkModeEnabled) {
         if(windowSize == WindowWidthSizeClass.Compact || windowSize == WindowWidthSizeClass.Medium){
             Scaffold(
                 topBar = {
@@ -1010,18 +1048,18 @@ fun SocialPage(navController: NavHostController, windowSize: WindowWidthSizeClas
                             Icon(
                                 imageVector = Icons.Default.ArrowBack,
                                 contentDescription = "Back",
-                                tint = Color.White
+                                tint = topBarContentColor
                             )
                         }
                         Text(
                             text = "Back",
                             style = MaterialTheme.typography.bodySmall,
-                            color = Color.White
+                            color = topBarContentColor
                         )
                         Text(
                             text = "Connections",
                             style = MaterialTheme.typography.headlineMedium,
-                            color = Color.White,
+                            color = topBarContentColor,
                             modifier = Modifier.weight(1f).padding(start = 46.dp)
                         )
                     }
@@ -1183,11 +1221,13 @@ Displays movies that the user has added to their watchlist.
 fun WatchlistPage(
     navController: NavHostController,
     watchlistViewModel: WatchlistViewModel,
-    windowSize: WindowWidthSizeClass
+    windowSize: WindowWidthSizeClass,
+    isDarkModeEnabled: Boolean
 ) {
     val watchlistMovies: List<MoviesItem> by watchlistViewModel.watchlistMovies.observeAsState(emptyList())
+    val topBarContentColor = if (isDarkModeEnabled) Color.Black else Color.White
 
-    POPcornTheme {
+    POPcornTheme(darkTheme = isDarkModeEnabled) {
         Scaffold(
             topBar = {
                 Row(
@@ -1206,19 +1246,19 @@ fun WatchlistPage(
                         Icon(
                             imageVector = Icons.Default.ArrowBack,
                             contentDescription = "Back",
-                            tint = Color.White
+                            tint = topBarContentColor
                         )
                     }
 
                     Text(
                         text = "Back",
                         style = MaterialTheme.typography.bodySmall,
-                        color = Color.White
+                        color = topBarContentColor
                     )
                     Text(
                         text = "Watchlist",
                         style = MaterialTheme.typography.headlineMedium,
-                        color = Color.White,
+                        color = topBarContentColor,
                         modifier = Modifier.weight(1f).padding(start = 60.dp)
                     )
                 }
@@ -1265,9 +1305,17 @@ Displays user data and includes Sign out button.
 */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ProfilePage(navController: NavHostController, onSignOut: () -> Unit, windowSize: WindowWidthSizeClass) {
+fun ProfilePage(
+    navController: NavHostController,
+    onSignOut: () -> Unit,
+    windowSize: WindowWidthSizeClass,
+    isDarkModeEnabled: Boolean,
+    onToggleDarkMode: () -> Unit,
+    textColor: Color
+) {
     val firebaseAuth = FirebaseAuth.getInstance()
     val currentUser = firebaseAuth.currentUser
+    val topBarContentColor = if (isDarkModeEnabled) Color.Black else Color.White
 
     var username by remember { mutableStateOf("") }
     var firstName by remember { mutableStateOf("") }
@@ -1286,7 +1334,7 @@ fun ProfilePage(navController: NavHostController, onSignOut: () -> Unit, windowS
             }
         }
     }
-    POPcornTheme {
+    POPcornTheme(darkTheme = isDarkModeEnabled) {
         if(windowSize == WindowWidthSizeClass.Compact || windowSize == WindowWidthSizeClass.Medium){
             Scaffold(
                 topBar = {
@@ -1306,19 +1354,19 @@ fun ProfilePage(navController: NavHostController, onSignOut: () -> Unit, windowS
                             Icon(
                                 imageVector = Icons.Default.ArrowBack,
                                 contentDescription = "Back",
-                                tint = Color.White
+                                tint = topBarContentColor
                             )
                         }
 
                         Text(
                             text = "Back",
                             style = MaterialTheme.typography.bodySmall,
-                            color = Color.White
+                            color = topBarContentColor
                         )
                         Text(
                             text = "Profile",
                             style = MaterialTheme.typography.headlineMedium,
-                            color = Color.White,
+                            color = topBarContentColor,
                             modifier = Modifier.weight(1f).padding(start = 80.dp)
                         )
                     }
@@ -1350,10 +1398,36 @@ fun ProfilePage(navController: NavHostController, onSignOut: () -> Unit, windowS
                             Text("First name: $firstName")
                             Text("Last name: $lastName")
 
-                            Spacer(Modifier.height(16.dp))
+//                            Spacer(Modifier.height(10.dp))
+
+//                            Text(
+//                                text = "Dark Mode",
+//                                style = MaterialTheme.typography.bodySmall,
+//                                color = textColor,
+//                                modifier = Modifier.padding(vertical = 6.dp)
+//                            )
+//                            DarkModeSwitch(
+//                                isDarkModeEnabled = isDarkModeEnabled,
+//                                onToggleDarkMode = onToggleDarkMode
+//                            )
+
+                            Spacer(Modifier.height(20.dp))
                             Button(onClick = onSignOut) {
                                 Text("Sign Out")
                             }
+
+                            Spacer(Modifier.height(50.dp))
+
+                            Text(
+                                text = "Dark Mode",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = textColor,
+                                modifier = Modifier.padding(vertical = 6.dp)
+                            )
+                            DarkModeSwitch(
+                                isDarkModeEnabled = isDarkModeEnabled,
+                                onToggleDarkMode = onToggleDarkMode
+                            )
                         }
                     }
                 }
@@ -1418,7 +1492,7 @@ fun ProfilePage(navController: NavHostController, onSignOut: () -> Unit, windowS
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
                                 Image(
-                                    painter = painterResource(id = R.drawable.christian_bale),
+                                    painter = painterResource(id = R.drawable.drive),
                                     contentDescription = "Profile Icon",
                                     modifier = Modifier
                                         .size(128.dp)
@@ -1444,42 +1518,84 @@ fun ProfilePage(navController: NavHostController, onSignOut: () -> Unit, windowS
 }
 
 /*
+A Dark mode switch that allows users to
+switch the theme to dark mode.
+ */
+@Composable
+fun DarkModeSwitch(
+    isDarkModeEnabled: Boolean,
+    onToggleDarkMode: () -> Unit
+) {
+    val thumbColor = if (isDarkModeEnabled) Color.White else Color.Gray
+    val trackColor = if (isDarkModeEnabled) Color.DarkGray else Color.LightGray
+
+    Switch(
+        checked = isDarkModeEnabled,
+        onCheckedChange = { onToggleDarkMode() }, // Update the state when the switch changes
+        colors = SwitchDefaults.colors(
+            checkedThumbColor = thumbColor,
+            checkedTrackColor = trackColor,
+            uncheckedThumbColor = thumbColor,
+            uncheckedTrackColor = trackColor
+        ),
+        modifier = Modifier.size(48.dp, 24.dp)
+    )
+}
+
+/*
 App Navigator
 Facilitates navigation within the application.
 */
 @Composable
-fun AppNavigator(navController: NavHostController, favouritesViewModel: FavouritesViewModel, watchlistViewModel: WatchlistViewModel, context: Context, windowSize: WindowWidthSizeClass) {
-    val moviesViewModel: MoviesViewModel = viewModel()
+fun AppNavigator(
+    navController: NavHostController,
+    favouritesViewModel: FavouritesViewModel,
+    watchlistViewModel: WatchlistViewModel,
+    context: Context,
+    windowSize: WindowWidthSizeClass,
+    isDarkModeEnabled: Boolean,
+    onToggleDarkMode: () -> Unit
+) {
+    POPcornTheme(darkTheme = isDarkModeEnabled) {
+        val moviesViewModel: MoviesViewModel = viewModel()
 
-    NavHost(navController, startDestination = "popcornPortrait") {
-        composable("popcornPortrait") {
-            POPcornPortrait(navController, favouritesViewModel, windowSize)
-        }
-        composable("moviePage") {
-            MoviePage(navController, moviesViewModel, windowSize)
-        }
-        composable("movieDetails/{movieId}") { backStackEntry ->
-            val movieId = backStackEntry.arguments?.getString("movieId")
-            val selectedMovie = moviesViewModel.movies?.find { it.id == movieId }
-
-            if (selectedMovie != null) {
-                MovieDetails(selectedMovie, navController, favouritesViewModel, watchlistViewModel, windowSize)
-            } else {
-                Text("Movie not found")
+        NavHost(navController, startDestination = "popcornPortrait") {
+            composable("popcornPortrait") {
+                POPcornPortrait(navController, favouritesViewModel, windowSize, isDarkModeEnabled = isDarkModeEnabled)
             }
-        }
-        composable("socialPage") {
-            SocialPage(navController, windowSize)
-        }
-        composable("watchlistPage") {
-            WatchlistPage(navController, watchlistViewModel, windowSize)
-        }
-        composable("profilePage") {
-            ProfilePage(navController, onSignOut = {
-                val intent = Intent(context, LoginActivity::class.java)
-                intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-                context.startActivity(intent)
-            }, windowSize )
+            composable("moviePage") {
+                MoviePage(navController, moviesViewModel, windowSize, isDarkModeEnabled = isDarkModeEnabled)
+            }
+            composable("movieDetails/{movieId}") { backStackEntry ->
+                val movieId = backStackEntry.arguments?.getString("movieId")
+                val selectedMovie = moviesViewModel.movies?.find { it.id == movieId }
+
+                if (selectedMovie != null) {
+                    MovieDetails(
+                        selectedMovie,
+                        navController,
+                        favouritesViewModel,
+                        watchlistViewModel,
+                        windowSize,
+                        isDarkModeEnabled = isDarkModeEnabled
+                    )
+                } else {
+                    Text("Movie not found")
+                }
+            }
+            composable("socialPage") {
+                SocialPage(navController, windowSize, isDarkModeEnabled = isDarkModeEnabled)
+            }
+            composable("watchlistPage") {
+                WatchlistPage(navController, watchlistViewModel, windowSize, isDarkModeEnabled = isDarkModeEnabled)
+            }
+            composable("profilePage") {
+                ProfilePage(navController, onSignOut = {
+                    val intent = Intent(context, LoginActivity::class.java)
+                    intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                    context.startActivity(intent)
+                }, windowSize, isDarkModeEnabled = isDarkModeEnabled, onToggleDarkMode, textColor = Color.Black)
+            }
         }
     }
 }
@@ -1930,10 +2046,12 @@ Displays main UI elements on the Home Page.
 fun POPcornPortrait(
     navController: NavHostController,
     favouritesViewModel: FavouritesViewModel,
-    windowSize: WindowWidthSizeClass
+    windowSize: WindowWidthSizeClass,
+    isDarkModeEnabled: Boolean
 ){
     val firebaseAuth = FirebaseAuth.getInstance()
     val currentUser = firebaseAuth.currentUser
+    val topBarContentColor = if (isDarkModeEnabled) Color.Black else Color.White
 
     var username by remember { mutableStateOf("") }
 
@@ -1949,7 +2067,7 @@ fun POPcornPortrait(
         }
     }
 
-    POPcornTheme {
+    POPcornTheme(darkTheme = isDarkModeEnabled) {
         if(windowSize == WindowWidthSizeClass.Compact || windowSize == WindowWidthSizeClass.Medium){
             Scaffold(
                 topBar = {
@@ -1963,7 +2081,7 @@ fun POPcornPortrait(
                         Text(
                             text = "Welcome, $username",
                             style = MaterialTheme.typography.headlineMedium,
-                            color = Color.White,
+                            color = topBarContentColor,
                             modifier = Modifier.padding(start = 8.dp)
                         )
                     }
@@ -2030,9 +2148,9 @@ fun POPcornPortrait(
 //@Preview(widthDp = 360, heightDp = 640)
 @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
 @Composable
-fun POPcornPortraitPreview(favouritesViewModel: FavouritesViewModel) {
+fun POPcornPortraitPreview(favouritesViewModel: FavouritesViewModel, isDarkModeEnabled: Boolean) {
     val navController = rememberNavController()
-    POPcornPortrait(navController, favouritesViewModel, WindowWidthSizeClass.Expanded)
+    POPcornPortrait(navController, favouritesViewModel, WindowWidthSizeClass.Expanded, isDarkModeEnabled)
 }
 
 // Dashboard Items
