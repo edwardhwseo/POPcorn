@@ -2,6 +2,7 @@ package com.mobiledevproj.popcorn
 
 import android.content.Context
 import android.content.Intent
+import android.content.res.Configuration
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -114,6 +115,7 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -149,6 +151,9 @@ class MainActivity : ComponentActivity() {
             }
 
             val isDarkModeEnabled by themeViewModel.isDarkModeEnabled.observeAsState(initial = false)
+
+            // Can dynamically change configuration based on portrait or landscape view
+            val configuration = LocalConfiguration.current
 
             AppNavigator(
                 navController,
@@ -193,8 +198,12 @@ fun MoviePage(
         it.title.contains(query, ignoreCase = true)
     }
     val topBarContentColor = if (isDarkModeEnabled) Color.Black else Color.White
+
+    // Can dynamically change configuration based on portrait or landscape view
+    val currentOrientation = LocalConfiguration.current.orientation
+
     POPcornTheme(darkTheme = isDarkModeEnabled) {
-        if(windowSize == WindowWidthSizeClass.Compact || windowSize == WindowWidthSizeClass.Medium) {
+        if(windowSize == WindowWidthSizeClass.Compact || windowSize == WindowWidthSizeClass.Medium && currentOrientation == Configuration.ORIENTATION_PORTRAIT) {
             Scaffold(
                 topBar = {
                     Row(
@@ -416,6 +425,9 @@ fun MovieDetails(
     var fetchedRating by remember { mutableStateOf(0) }
     val topBarContentColor = if (isDarkModeEnabled) Color.Black else Color.White
 
+    // Can dynamically change configuration based on portrait or landscape view
+    val currentOrientation = LocalConfiguration.current.orientation
+
     LaunchedEffect(Unit) {
         val firebaseDatabase = FirebaseDatabase.getInstance()
         val userId = FirebaseAuth.getInstance().currentUser?.uid
@@ -432,7 +444,7 @@ fun MovieDetails(
         })
     }
 POPcornTheme(darkTheme = isDarkModeEnabled) {
-    if(windowSize == WindowWidthSizeClass.Compact || windowSize == WindowWidthSizeClass.Medium) {
+    if(windowSize == WindowWidthSizeClass.Compact || windowSize == WindowWidthSizeClass.Medium && currentOrientation == Configuration.ORIENTATION_PORTRAIT) {
         Scaffold(
             topBar = {
                 Row(
@@ -972,6 +984,8 @@ fun SocialPage(
     val currentUser = auth.currentUser
     val topBarContentColor = if (isDarkModeEnabled) Color.Black else Color.White
 
+    // Can dynamically change configuration based on portrait or landscape view
+    val currentOrientation = LocalConfiguration.current.orientation
     val usersRef = database.reference.child("users")
 
     val userList = remember { mutableStateOf<List<User>>(emptyList()) }
@@ -1029,7 +1043,7 @@ fun SocialPage(
     }
 
     POPcornTheme(darkTheme = isDarkModeEnabled) {
-        if(windowSize == WindowWidthSizeClass.Compact || windowSize == WindowWidthSizeClass.Medium){
+        if(windowSize == WindowWidthSizeClass.Compact || windowSize == WindowWidthSizeClass.Medium && currentOrientation == Configuration.ORIENTATION_PORTRAIT){
             Scaffold(
                 topBar = {
                     Row(
@@ -1317,6 +1331,9 @@ fun ProfilePage(
     val currentUser = firebaseAuth.currentUser
     val topBarContentColor = if (isDarkModeEnabled) Color.Black else Color.White
 
+    // Can dynamically change configuration based on portrait or landscape view
+    val currentOrientation = LocalConfiguration.current.orientation
+
     var username by remember { mutableStateOf("") }
     var firstName by remember { mutableStateOf("") }
     var lastName by remember { mutableStateOf("") }
@@ -1335,7 +1352,7 @@ fun ProfilePage(
         }
     }
     POPcornTheme(darkTheme = isDarkModeEnabled) {
-        if(windowSize == WindowWidthSizeClass.Compact || windowSize == WindowWidthSizeClass.Medium){
+        if(windowSize == WindowWidthSizeClass.Compact || windowSize == WindowWidthSizeClass.Medium && currentOrientation == Configuration.ORIENTATION_PORTRAIT){
             Scaffold(
                 topBar = {
                     Row(
