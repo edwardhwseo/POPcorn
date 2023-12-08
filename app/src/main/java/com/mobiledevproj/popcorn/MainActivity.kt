@@ -1398,19 +1398,6 @@ fun ProfilePage(
                             Text("First name: $firstName")
                             Text("Last name: $lastName")
 
-//                            Spacer(Modifier.height(10.dp))
-
-//                            Text(
-//                                text = "Dark Mode",
-//                                style = MaterialTheme.typography.bodySmall,
-//                                color = textColor,
-//                                modifier = Modifier.padding(vertical = 6.dp)
-//                            )
-//                            DarkModeSwitch(
-//                                isDarkModeEnabled = isDarkModeEnabled,
-//                                onToggleDarkMode = onToggleDarkMode
-//                            )
-
                             Spacer(Modifier.height(20.dp))
                             Button(onClick = onSignOut) {
                                 Text("Sign Out")
