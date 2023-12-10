@@ -1266,12 +1266,12 @@ fun WatchlistPage(
                     }
 
                     Text(
-                        text = "Back",
+                        text = stringResource(id = R.string.back),
                         style = MaterialTheme.typography.bodySmall,
                         color = topBarContentColor
                     )
                     Text(
-                        text = "Watchlist",
+                        text = stringResource(id = R.string.watchlist),
                         style = MaterialTheme.typography.headlineMedium,
                         color = topBarContentColor,
                         modifier = Modifier.weight(1f).padding(start = 60.dp)

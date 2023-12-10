@@ -31,4 +31,5 @@
     <string name="add">Ajouter</string>
     <string name="sign_in_successful">Connexion réussie!</string>
     <string name="failed_login">La connexion a échoué! </string>
+    <string name="watchlist">Liste de surveillance</string>
 </resources>
