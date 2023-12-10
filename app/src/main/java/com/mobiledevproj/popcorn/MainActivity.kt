@@ -2,6 +2,7 @@ package com.mobiledevproj.popcorn
 
 import android.content.Context
 import android.content.Intent
+import android.content.res.Configuration
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -81,12 +82,14 @@ import okhttp3.Response
 import java.io.IOException
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Card
@@ -95,11 +98,14 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.NavigationDrawerItem
 import androidx.compose.material3.PermanentDrawerSheet
 import androidx.compose.material3.PermanentNavigationDrawer
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import org.json.JSONArray
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.rememberImagePainter
@@ -109,10 +115,11 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateMapOf
-import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.*
@@ -124,6 +131,7 @@ The entry point for the POPcorn application.
 It initializes the UI and handles navigation using Jetpack Compose.
  */
 class MainActivity : ComponentActivity() {
+    private val themeViewModel: ThemeViewModel by viewModels()
     @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -131,6 +139,7 @@ class MainActivity : ComponentActivity() {
             val navController = rememberNavController()
             val moviesViewModel: MoviesViewModel = viewModel()
             val favouritesViewModel by viewModels<FavouritesViewModel>()
+            val watchlistViewModel by viewModels<WatchlistViewModel>()
             val context: Context = this
             val windowSize = calculateWindowSizeClass(activity = (this))
 
@@ -142,8 +151,34 @@ class MainActivity : ComponentActivity() {
                 navController.navigate("sign_in")
             }
 
-            AppNavigator(navController, favouritesViewModel, context, windowSize.widthSizeClass)
+            val isDarkModeEnabled by themeViewModel.isDarkModeEnabled.observeAsState(initial = false)
+
+            // Can dynamically change configuration based on portrait or landscape view
+            val configuration = LocalConfiguration.current
+
+            AppNavigator(
+                navController,
+                favouritesViewModel,
+                watchlistViewModel,
+                context,
+                windowSize.widthSizeClass,
+                isDarkModeEnabled,
+                onToggleDarkMode = { themeViewModel.toggleDarkMode() }
+            )
         }
+    }
+}
+
+/*
+A View model to keep track of
+the theme based on the state of the dark mode switch.
+ */
+class ThemeViewModel : ViewModel() {
+    private val _isDarkModeEnabled = MutableLiveData<Boolean>(false)
+    val isDarkModeEnabled: LiveData<Boolean> = _isDarkModeEnabled
+
+    fun toggleDarkMode() {
+        _isDarkModeEnabled.value = !_isDarkModeEnabled.value!!
     }
 }
 
@@ -153,14 +188,23 @@ Displays movie data in a list.
 */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MoviePage(navController: NavHostController, moviesViewModel: MoviesViewModel, windowSize: WindowWidthSizeClass) {
+fun MoviePage(
+    navController: NavHostController,
+    moviesViewModel: MoviesViewModel,
+    windowSize: WindowWidthSizeClass,
+    isDarkModeEnabled: Boolean) {
     val movies = moviesViewModel.movies ?: emptyList()
     var query by remember { mutableStateOf("") }
     val filteredList = movies.filter {
         it.title.contains(query, ignoreCase = true)
     }
-    POPcornTheme {
-        if(windowSize == WindowWidthSizeClass.Compact || windowSize == WindowWidthSizeClass.Medium) {
+    val topBarContentColor = if (isDarkModeEnabled) Color.Black else Color.White
+
+    // Can dynamically change configuration based on portrait or landscape view
+    val currentOrientation = LocalConfiguration.current.orientation
+
+    POPcornTheme(darkTheme = isDarkModeEnabled) {
+        if(windowSize == WindowWidthSizeClass.Compact || windowSize == WindowWidthSizeClass.Medium && currentOrientation == Configuration.ORIENTATION_PORTRAIT) {
             Scaffold(
                 topBar = {
                     Row(
@@ -179,15 +223,20 @@ fun MoviePage(navController: NavHostController, moviesViewModel: MoviesViewModel
                             Icon(
                                 imageVector = Icons.Default.ArrowBack,
                                 contentDescription = "Back",
-                                tint = Color.White
+                                tint = topBarContentColor
                             )
                         }
 
                         Text(
                             text = "Back",
                             style = MaterialTheme.typography.bodySmall,
-                            color = Color.White,
-                            modifier = Modifier.padding(start = 8.dp)
+                            color = topBarContentColor
+                        )
+                        Text(
+                            text = "Movies",
+                            style = MaterialTheme.typography.headlineMedium,
+                            color = topBarContentColor,
+                            modifier = Modifier.weight(1f).padding(start = 75.dp)
                         )
                     }
                 },
@@ -367,11 +416,18 @@ fun MovieDetails(
     movie: MoviesItem,
     navController: NavHostController,
     favouritesViewModel: FavouritesViewModel,
-    windowSize: WindowWidthSizeClass
+    watchlistViewModel: WatchlistViewModel,
+    windowSize: WindowWidthSizeClass,
+    isDarkModeEnabled: Boolean
 ) {
     var isFavourite by remember { mutableStateOf(favouritesViewModel.isMovieInFavourites(movie)) }
+    var isInWatchlist by remember { mutableStateOf(watchlistViewModel.isMovieInWatchlist(movie)) }
     var userRating by remember { mutableStateOf(0) }
     var fetchedRating by remember { mutableStateOf(0) }
+    val topBarContentColor = if (isDarkModeEnabled) Color.Black else Color.White
+
+    // Can dynamically change configuration based on portrait or landscape view
+    val currentOrientation = LocalConfiguration.current.orientation
 
     LaunchedEffect(Unit) {
         val firebaseDatabase = FirebaseDatabase.getInstance()
@@ -388,8 +444,8 @@ fun MovieDetails(
             }
         })
     }
-POPcornTheme {
-    if(windowSize == WindowWidthSizeClass.Compact || windowSize == WindowWidthSizeClass.Medium) {
+POPcornTheme(darkTheme = isDarkModeEnabled) {
+    if(windowSize == WindowWidthSizeClass.Compact || windowSize == WindowWidthSizeClass.Medium && currentOrientation == Configuration.ORIENTATION_PORTRAIT) {
         Scaffold(
             topBar = {
                 Row(
@@ -408,15 +464,14 @@ POPcornTheme {
                         Icon(
                             imageVector = Icons.Default.ArrowBack,
                             contentDescription = "Back",
-                            tint = Color.White
+                            tint = topBarContentColor
                         )
                     }
 
                     Text(
                         text = "Back",
                         style = MaterialTheme.typography.bodySmall,
-                        color = Color.White,
-                        modifier = Modifier.padding(start = 8.dp)
+                        color = topBarContentColor
                     )
                 }
             },
@@ -430,7 +485,7 @@ POPcornTheme {
             ) {
                 Spacer(modifier = Modifier.height(50.dp))
 
-                // Box for the image and the favourites button
+                // Box for the image, favourites button, and watchlist button
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -445,6 +500,7 @@ POPcornTheme {
                         modifier = Modifier.fillMaxSize()
                     )
 
+                    // Favourite icon
                     Icon(
                         imageVector = Icons.Default.Favorite,
                         contentDescription = "Add to Favorites",
@@ -463,6 +519,27 @@ POPcornTheme {
                                 isFavourite = !isCurrentlyFavourite // Toggle the state
                             }
                     )
+
+                    // Watchlist icon
+                    Icon(
+                        imageVector = Icons.Default.DateRange,
+                        contentDescription = "Add to Watchlist",
+                        tint = if (isInWatchlist) Color.Green else Color.White,
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .padding(16.dp)
+                            .clickable {
+                                val isCurrentlyInWatchlist = watchlistViewModel.isMovieInWatchlist(movie)
+
+                                if (isCurrentlyInWatchlist) {
+                                    watchlistViewModel.removeFromWatchlist(movie)
+                                } else {
+                                    watchlistViewModel.addToWatchlist(movie)
+                                }
+                                isInWatchlist = !isCurrentlyInWatchlist // Toggle the state
+                            }
+                    )
+
                 }
 
                 Column(
@@ -849,17 +926,67 @@ class FavouritesViewModel : ViewModel() {
 }
 
 /*
+WatchlistViewModel
+Contains functions to add and remove movies from a users watchlist.
+ */
+class WatchlistViewModel : ViewModel() {
+
+    private val auth: FirebaseAuth = FirebaseAuth.getInstance()
+    private val database: FirebaseDatabase = FirebaseDatabase.getInstance()
+    private val userId: String = auth.currentUser?.uid ?: ""
+    private val watchlistRef: DatabaseReference = database.reference.child("users").child(userId).child("watchlist")
+
+    private val _watchlistMovies = MutableLiveData<List<MoviesItem>>(emptyList())
+    val watchlistMovies: LiveData<List<MoviesItem>> = _watchlistMovies
+
+    init {
+        watchlistRef.addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val movies = mutableListOf<MoviesItem>()
+                for (movieSnapshot in snapshot.children) {
+                    val movie = movieSnapshot.getValue(MoviesItem::class.java)
+                    movie?.let { movies.add(it) }
+                }
+                _watchlistMovies.value = movies
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                // Handle error
+            }
+        })
+    }
+
+    fun isMovieInWatchlist(movie: MoviesItem): Boolean {
+        return _watchlistMovies.value?.any { it.id == movie.id } ?: false
+    }
+
+    fun addToWatchlist(movie: MoviesItem) {
+        watchlistRef.child(movie.id).setValue(movie)
+    }
+
+    fun removeFromWatchlist(movie: MoviesItem) {
+        watchlistRef.child(movie.id).removeValue()
+    }
+}
+
+/*
 Social Page
 Displays Users of the application that can be
 added to their Connections.
 */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SocialPage(navController: NavHostController, windowSize: WindowWidthSizeClass) {
+fun SocialPage(
+    navController: NavHostController,
+    windowSize: WindowWidthSizeClass,
+    isDarkModeEnabled: Boolean) {
     val auth = FirebaseAuth.getInstance()
     val database = FirebaseDatabase.getInstance()
     val currentUser = auth.currentUser
+    val topBarContentColor = if (isDarkModeEnabled) Color.Black else Color.White
 
+    // Can dynamically change configuration based on portrait or landscape view
+    val currentOrientation = LocalConfiguration.current.orientation
     val usersRef = database.reference.child("users")
 
     val userList = remember { mutableStateOf<List<User>>(emptyList()) }
@@ -916,8 +1043,8 @@ fun SocialPage(navController: NavHostController, windowSize: WindowWidthSizeClas
         }
     }
 
-    POPcornTheme {
-        if(windowSize == WindowWidthSizeClass.Compact || windowSize == WindowWidthSizeClass.Medium){
+    POPcornTheme(darkTheme = isDarkModeEnabled) {
+        if(windowSize == WindowWidthSizeClass.Compact || windowSize == WindowWidthSizeClass.Medium && currentOrientation == Configuration.ORIENTATION_PORTRAIT){
             Scaffold(
                 topBar = {
                     Row(
@@ -936,14 +1063,19 @@ fun SocialPage(navController: NavHostController, windowSize: WindowWidthSizeClas
                             Icon(
                                 imageVector = Icons.Default.ArrowBack,
                                 contentDescription = "Back",
-                                tint = Color.White
+                                tint = topBarContentColor
                             )
                         }
                         Text(
                             text = stringResource(id = R.string.back),
                             style = MaterialTheme.typography.bodySmall,
-                            color = Color.White,
-                            modifier = Modifier.padding(start = 8.dp)
+                            color = topBarContentColor
+                        )
+                        Text(
+                            text = "Connections",
+                            style = MaterialTheme.typography.headlineMedium,
+                            color = topBarContentColor,
+                            modifier = Modifier.weight(1f).padding(start = 46.dp)
                         )
                     }
                 },
@@ -1096,14 +1228,112 @@ data class User(
 )
 
 /*
+Watchlist Page
+Displays movies that the user has added to their watchlist.
+*/
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun WatchlistPage(
+    navController: NavHostController,
+    watchlistViewModel: WatchlistViewModel,
+    windowSize: WindowWidthSizeClass,
+    isDarkModeEnabled: Boolean
+) {
+    val watchlistMovies: List<MoviesItem> by watchlistViewModel.watchlistMovies.observeAsState(emptyList())
+    val topBarContentColor = if (isDarkModeEnabled) Color.Black else Color.White
+
+    POPcornTheme(darkTheme = isDarkModeEnabled) {
+        Scaffold(
+            topBar = {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(MaterialTheme.colorScheme.primary)
+                        .padding(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(
+                        onClick = { navController.popBackStack() },
+                        modifier = Modifier
+                            .padding(8.dp)
+                            .size(20.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.ArrowBack,
+                            contentDescription = "Back",
+                            tint = topBarContentColor
+                        )
+                    }
+
+                    Text(
+                        text = "Back",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = topBarContentColor
+                    )
+                    Text(
+                        text = "Watchlist",
+                        style = MaterialTheme.typography.headlineMedium,
+                        color = topBarContentColor,
+                        modifier = Modifier.weight(1f).padding(start = 60.dp)
+                    )
+                }
+            },
+            bottomBar = {
+                POPcornBottomNavigation(navController)
+            }
+        ) { padding ->
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 16.dp)
+            ) {
+                Spacer(modifier = Modifier.height(65.dp))
+
+                if (watchlistMovies.isEmpty()) {
+                    Text(
+                        text = "No movies in watchlist!",
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 16.dp),
+                        textAlign = TextAlign.Center
+                    )
+                } else {
+                    LazyColumn(
+                        modifier = Modifier.weight(1f),
+                        contentPadding = PaddingValues(horizontal = 0.dp)
+                    ) {
+                        items(watchlistMovies) { movie ->
+                            MovieCard(movie, navController = navController)
+                            Spacer(modifier = Modifier.height(16.dp))
+                        }
+                    }
+                }
+                Spacer(Modifier.height(80.dp))
+            }
+        }
+    }
+}
+
+/*
 Profile Page
 Displays user data and includes Sign out button.
 */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ProfilePage(navController: NavHostController, onSignOut: () -> Unit, windowSize: WindowWidthSizeClass) {
+fun ProfilePage(
+    navController: NavHostController,
+    onSignOut: () -> Unit,
+    windowSize: WindowWidthSizeClass,
+    isDarkModeEnabled: Boolean,
+    onToggleDarkMode: () -> Unit,
+    textColor: Color
+) {
     val firebaseAuth = FirebaseAuth.getInstance()
     val currentUser = firebaseAuth.currentUser
+    val topBarContentColor = if (isDarkModeEnabled) Color.Black else Color.White
+
+    // Can dynamically change configuration based on portrait or landscape view
+    val currentOrientation = LocalConfiguration.current.orientation
 
     var username by remember { mutableStateOf("") }
     var firstName by remember { mutableStateOf("") }
@@ -1122,8 +1352,8 @@ fun ProfilePage(navController: NavHostController, onSignOut: () -> Unit, windowS
             }
         }
     }
-    POPcornTheme {
-        if(windowSize == WindowWidthSizeClass.Compact || windowSize == WindowWidthSizeClass.Medium){
+    POPcornTheme(darkTheme = isDarkModeEnabled) {
+        if(windowSize == WindowWidthSizeClass.Compact || windowSize == WindowWidthSizeClass.Medium && currentOrientation == Configuration.ORIENTATION_PORTRAIT){
             Scaffold(
                 topBar = {
                     Row(
@@ -1142,15 +1372,20 @@ fun ProfilePage(navController: NavHostController, onSignOut: () -> Unit, windowS
                             Icon(
                                 imageVector = Icons.Default.ArrowBack,
                                 contentDescription = "Back",
-                                tint = Color.White
+                                tint = topBarContentColor
                             )
                         }
 
                         Text(
                             text = "Back",
                             style = MaterialTheme.typography.bodySmall,
-                            color = Color.White,
-                            modifier = Modifier.padding(start = 8.dp)
+                            color = topBarContentColor
+                        )
+                        Text(
+                            text = "Profile",
+                            style = MaterialTheme.typography.headlineMedium,
+                            color = topBarContentColor,
+                            modifier = Modifier.weight(1f).padding(start = 80.dp)
                         )
                     }
                 },
@@ -1159,16 +1394,17 @@ fun ProfilePage(navController: NavHostController, onSignOut: () -> Unit, windowS
                 Column(modifier = Modifier
                     .fillMaxSize()
                     .padding(horizontal = 16.dp)) {
+                    Spacer(Modifier.height(100.dp))
                     Box(
                         modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
+                        contentAlignment = Alignment.TopCenter
                     ) {
                         Column(
                             verticalArrangement = Arrangement.Center,
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             Image(
-                                painter = painterResource(id = R.drawable.christian_bale),
+                                painter = painterResource(id = R.drawable.drive),
                                 contentDescription = "Profile Icon",
                                 modifier = Modifier
                                     .size(128.dp)
@@ -1180,10 +1416,23 @@ fun ProfilePage(navController: NavHostController, onSignOut: () -> Unit, windowS
                             Text("First name: $firstName")
                             Text("Last name: $lastName")
 
-                            Spacer(Modifier.height(16.dp))
+                            Spacer(Modifier.height(20.dp))
                             Button(onClick = onSignOut) {
                                 Text("Sign Out")
                             }
+
+                            Spacer(Modifier.height(50.dp))
+
+                            Text(
+                                text = "Dark Mode",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = textColor,
+                                modifier = Modifier.padding(vertical = 6.dp)
+                            )
+                            DarkModeSwitch(
+                                isDarkModeEnabled = isDarkModeEnabled,
+                                onToggleDarkMode = onToggleDarkMode
+                            )
                         }
                     }
                 }
@@ -1248,7 +1497,7 @@ fun ProfilePage(navController: NavHostController, onSignOut: () -> Unit, windowS
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
                                 Image(
-                                    painter = painterResource(id = R.drawable.christian_bale),
+                                    painter = painterResource(id = R.drawable.drive),
                                     contentDescription = "Profile Icon",
                                     modifier = Modifier
                                         .size(128.dp)
@@ -1274,39 +1523,84 @@ fun ProfilePage(navController: NavHostController, onSignOut: () -> Unit, windowS
 }
 
 /*
+A Dark mode switch that allows users to
+switch the theme to dark mode.
+ */
+@Composable
+fun DarkModeSwitch(
+    isDarkModeEnabled: Boolean,
+    onToggleDarkMode: () -> Unit
+) {
+    val thumbColor = if (isDarkModeEnabled) Color.White else Color.Gray
+    val trackColor = if (isDarkModeEnabled) Color.DarkGray else Color.LightGray
+
+    Switch(
+        checked = isDarkModeEnabled,
+        onCheckedChange = { onToggleDarkMode() }, // Update the state when the switch changes
+        colors = SwitchDefaults.colors(
+            checkedThumbColor = thumbColor,
+            checkedTrackColor = trackColor,
+            uncheckedThumbColor = thumbColor,
+            uncheckedTrackColor = trackColor
+        ),
+        modifier = Modifier.size(48.dp, 24.dp)
+    )
+}
+
+/*
 App Navigator
 Facilitates navigation within the application.
 */
 @Composable
-fun AppNavigator(navController: NavHostController, favouritesViewModel: FavouritesViewModel, context: Context, windowSize: WindowWidthSizeClass) {
-    val moviesViewModel: MoviesViewModel = viewModel()
+fun AppNavigator(
+    navController: NavHostController,
+    favouritesViewModel: FavouritesViewModel,
+    watchlistViewModel: WatchlistViewModel,
+    context: Context,
+    windowSize: WindowWidthSizeClass,
+    isDarkModeEnabled: Boolean,
+    onToggleDarkMode: () -> Unit
+) {
+    POPcornTheme(darkTheme = isDarkModeEnabled) {
+        val moviesViewModel: MoviesViewModel = viewModel()
 
-    NavHost(navController, startDestination = "popcornPortrait") {
-        composable("popcornPortrait") {
-            POPcornPortrait(navController, favouritesViewModel, windowSize)
-        }
-        composable("moviePage") {
-            MoviePage(navController, moviesViewModel, windowSize)
-        }
-        composable("movieDetails/{movieId}") { backStackEntry ->
-            val movieId = backStackEntry.arguments?.getString("movieId")
-            val selectedMovie = moviesViewModel.movies?.find { it.id == movieId }
-
-            if (selectedMovie != null) {
-                MovieDetails(selectedMovie, navController, favouritesViewModel, windowSize)
-            } else {
-                Text("Movie not found")
+        NavHost(navController, startDestination = "popcornPortrait") {
+            composable("popcornPortrait") {
+                POPcornPortrait(navController, favouritesViewModel, windowSize, isDarkModeEnabled = isDarkModeEnabled)
             }
-        }
-        composable("socialPage") {
-            SocialPage(navController, windowSize)
-        }
-        composable("profilePage") {
-            ProfilePage(navController, onSignOut = {
-                val intent = Intent(context, LoginActivity::class.java)
-                intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-                context.startActivity(intent)
-            }, windowSize )
+            composable("moviePage") {
+                MoviePage(navController, moviesViewModel, windowSize, isDarkModeEnabled = isDarkModeEnabled)
+            }
+            composable("movieDetails/{movieId}") { backStackEntry ->
+                val movieId = backStackEntry.arguments?.getString("movieId")
+                val selectedMovie = moviesViewModel.movies?.find { it.id == movieId }
+
+                if (selectedMovie != null) {
+                    MovieDetails(
+                        selectedMovie,
+                        navController,
+                        favouritesViewModel,
+                        watchlistViewModel,
+                        windowSize,
+                        isDarkModeEnabled = isDarkModeEnabled
+                    )
+                } else {
+                    Text("Movie not found")
+                }
+            }
+            composable("socialPage") {
+                SocialPage(navController, windowSize, isDarkModeEnabled = isDarkModeEnabled)
+            }
+            composable("watchlistPage") {
+                WatchlistPage(navController, watchlistViewModel, windowSize, isDarkModeEnabled = isDarkModeEnabled)
+            }
+            composable("profilePage") {
+                ProfilePage(navController, onSignOut = {
+                    val intent = Intent(context, LoginActivity::class.java)
+                    intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                    context.startActivity(intent)
+                }, windowSize, isDarkModeEnabled = isDarkModeEnabled, onToggleDarkMode, textColor = Color.Black)
+            }
         }
     }
 }
@@ -1453,7 +1747,7 @@ fun SearchBar(
     )
 }
 
-// Preview Composable
+//Preview Composable
 //@Preview(showBackground = true, backgroundColor = 0xFFF5F0EE)
 //@Composable
 //fun SearchBarPreview() {
@@ -1514,6 +1808,20 @@ fun POPcornElementPreview() {
 Dashboard Row
 Displays homepage POPcorn element in row format.
  */
+//@Composable
+//fun DashboardRow(navController: NavHostController, modifier: Modifier = Modifier) {
+//    LazyRow(
+//        horizontalArrangement = Arrangement.spacedBy(8.dp),
+//        contentPadding = PaddingValues(horizontal = 16.dp),
+//        modifier = modifier
+//    ) {
+//        items(dashboardData) { item ->
+//            val destination = if (item.text == R.string.movies) "moviePage" else "socialPage"
+//            POPcornElement(item.drawable, item.text, destination, navController)
+//        }
+//    }
+//}
+
 @Composable
 fun DashboardRow(navController: NavHostController, modifier: Modifier = Modifier) {
     LazyRow(
@@ -1522,7 +1830,12 @@ fun DashboardRow(navController: NavHostController, modifier: Modifier = Modifier
         modifier = modifier
     ) {
         items(dashboardData) { item ->
-            val destination = if (item.text == R.string.movies) "moviePage" else "socialPage"
+            val destination = when (item.text) {
+                R.string.movies -> "moviePage"
+                R.string.social -> "socialPage"
+                R.string.watchlist -> "watchlistPage"
+                else -> "defaultDestination" // You can set a default destination or handle other cases
+            }
             POPcornElement(item.drawable, item.text, destination, navController)
         }
     }
@@ -1738,10 +2051,12 @@ Displays main UI elements on the Home Page.
 fun POPcornPortrait(
     navController: NavHostController,
     favouritesViewModel: FavouritesViewModel,
-    windowSize: WindowWidthSizeClass
+    windowSize: WindowWidthSizeClass,
+    isDarkModeEnabled: Boolean
 ){
     val firebaseAuth = FirebaseAuth.getInstance()
     val currentUser = firebaseAuth.currentUser
+    val topBarContentColor = if (isDarkModeEnabled) Color.Black else Color.White
 
     var username by remember { mutableStateOf("") }
 
@@ -1757,7 +2072,7 @@ fun POPcornPortrait(
         }
     }
 
-    POPcornTheme {
+    POPcornTheme(darkTheme = isDarkModeEnabled) {
         if(windowSize == WindowWidthSizeClass.Compact || windowSize == WindowWidthSizeClass.Medium){
             Scaffold(
                 topBar = {
@@ -1771,7 +2086,7 @@ fun POPcornPortrait(
                         Text(
                             text = "Welcome, $username",
                             style = MaterialTheme.typography.headlineMedium,
-                            color = Color.White,
+                            color = topBarContentColor,
                             modifier = Modifier.padding(start = 8.dp)
                         )
                     }
@@ -1838,9 +2153,9 @@ fun POPcornPortrait(
 //@Preview(widthDp = 360, heightDp = 640)
 @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
 @Composable
-fun POPcornPortraitPreview(favouritesViewModel: FavouritesViewModel) {
+fun POPcornPortraitPreview(favouritesViewModel: FavouritesViewModel, isDarkModeEnabled: Boolean) {
     val navController = rememberNavController()
-    POPcornPortrait(navController, favouritesViewModel, WindowWidthSizeClass.Expanded)
+    POPcornPortrait(navController, favouritesViewModel, WindowWidthSizeClass.Expanded, isDarkModeEnabled)
 }
 
 // Dashboard Items
@@ -1848,6 +2163,7 @@ data class DashboardData(@DrawableRes val drawable: Int, @StringRes val text: In
 
 val dashboardData = listOf(
     DashboardData(R.drawable.movie, R.string.movies),
+    DashboardData(R.drawable.watchlist, R.string.watchlist),
     DashboardData(R.drawable.social, R.string.social)
 )
 
