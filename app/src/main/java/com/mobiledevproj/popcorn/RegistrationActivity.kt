@@ -15,12 +15,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.FirebaseDatabase
 import com.mobiledevproj.popcorn.ui.theme.POPcornTheme
+
 
 class RegistrationActivity : ComponentActivity() {
 
@@ -130,38 +132,38 @@ class RegistrationActivity : ComponentActivity() {
             OutlinedTextField(
                 value = usernameState.value,
                 onValueChange = { usernameState.value = it },
-                label = { Text("Username") }
+                label = { Text(text = stringResource(id = R.string.username)) }
             )
 
             OutlinedTextField(
                 value = firstNameState.value,
                 onValueChange = { firstNameState.value = it },
-                label = { Text("First Name") }
+                label = { Text(text = stringResource(id = R.string.firstname)) }
             )
 
             OutlinedTextField(
                 value = lastNameState.value,
                 onValueChange = { lastNameState.value = it },
-                label = { Text("Last Name") }
+                label = { Text(text = stringResource(id = R.string.lastname)) }
             )
 
             OutlinedTextField(
                 value = emailState.value,
                 onValueChange = { emailState.value = it },
-                label = { Text("Email") }
+                label = { Text(text = stringResource(id = R.string.email)) }
             )
 
             OutlinedTextField(
                 value = passwordState.value,
                 onValueChange = { passwordState.value = it },
-                label = { Text("Password") },
+                label = { Text(text = stringResource(id = R.string.password)) },
                 visualTransformation = PasswordVisualTransformation()
             )
 
             OutlinedTextField(
                 value = confirmPasswordState.value,
                 onValueChange = { confirmPasswordState.value = it },
-                label = { Text("Confirm Password") },
+                label = { Text(text = stringResource(id = R.string.passwordconfirm)) },
                 visualTransformation = PasswordVisualTransformation()
             )
 
@@ -185,14 +187,14 @@ class RegistrationActivity : ComponentActivity() {
                 },
                 modifier = Modifier.padding(top = 16.dp)
             ) {
-                Text("Register")
+                Text(text = stringResource(id = R.string.register))
             }
 
             Button(
                 onClick = onBackPressed,
                 modifier = Modifier.padding(top = 16.dp)
             ) {
-                Text("Back to Login")
+                Text(text = stringResource(id = R.string.backtologin))
             }
         }
     }

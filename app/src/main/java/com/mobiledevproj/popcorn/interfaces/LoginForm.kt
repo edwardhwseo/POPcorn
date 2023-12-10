@@ -43,6 +43,7 @@ import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -113,14 +114,14 @@ fun LoginForm(
                     if (credentials.isNotEmpty()) {
                         signInWithEmailAndPassword(credentials.login, credentials.pwd, context)
                     } else {
-                        Toast.makeText(context, "Please fill in the credentials", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, R.string.fill_credentials_message, Toast.LENGTH_SHORT).show()
                     }
                 },
                 enabled = credentials.isNotEmpty(),
                 shape = RoundedCornerShape(5.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Login")
+                Text(text = stringResource(id = R.string.login))
             }
 
             // Register Button
@@ -134,7 +135,7 @@ fun LoginForm(
                     .fillMaxWidth()
                     .padding(top = 16.dp)
             ) {
-                Text("Register")
+                Text(text = stringResource(id = R.string.register))
             }
 
             // Google Sign-In button
@@ -144,7 +145,7 @@ fun LoginForm(
                     .fillMaxWidth()
                     .padding(top = 16.dp),
                 onClick = onSignInClick) {
-                Text(text = "Sign in with Google")
+                Text(text = stringResource(id = R.string.google_sign_in))
             }
         }
     }
@@ -168,8 +169,8 @@ fun LoginField(
     value: String,
     onChange : (String)->Unit,
     modifier: Modifier = Modifier,
-    label : String = "Email",
-    placeholder : String = "Enter your Email"
+    label: String = stringResource(id = R.string.loginlabel),
+    placeholder: String = stringResource(id = R.string.enteryouremail)
 ) {
     val focusManager = LocalFocusManager.current
     val leadingIcon = @Composable {
@@ -204,8 +205,8 @@ fun PasswordField(
     onChange : (String)->Unit,
     submit : ()->Unit,
     modifier: Modifier = Modifier,
-    label : String = "Password",
-    placeholder : String = "Enter your Password"
+    label: String = stringResource(id = R.string.passwordlabel),
+    placeholder: String = stringResource(id = R.string.passwordplaceholder)
 ) {
     var isPasswordVisible by remember { mutableStateOf(false) }
 
@@ -271,14 +272,20 @@ fun signInWithEmailAndPassword(email: String, password: String, context: Context
         .addOnCompleteListener { task ->
             if (task.isSuccessful) {
                 // Sign-in successful
-                Toast.makeText(context, "Sign-in successful", Toast.LENGTH_SHORT).show()
-                // Proceed to the app's main screen or perform necessary actions
+                Toast.makeText(
+                    context,
+                    context.getString(R.string.successful_login),
+                    Toast.LENGTH_SHORT
+                ).show()                // Proceed to the app's main screen or perform necessary actions
                 val intent = Intent(context, MainActivity::class.java)
                 context.startActivity(intent)
                 (context as Activity).finish()
             } else {
                 // Sign-in failed
-                Toast.makeText(context, "Sign-in failed: ${task.exception?.message}", Toast.LENGTH_SHORT).show()
-            }
+                Toast.makeText(
+                    context,
+                    context.getString(R.string.failed_login) + " " + (task.exception?.message ?: ""),
+                    Toast.LENGTH_SHORT
+                ).show()            }
         }
 }
