@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="placeholder_search">Recherche POPcorn</string>
+    <string name="movies">Films</string>
+    <string name="social">Social</string>
+    <string name="Dashboard">Tableau de bord</string>
+    <string name="favourite_collection">Films préférés</string>
+    <string name="bottom_navigation_home">Maison</string>
+    <string name="bottom_navigation_profile">Profil</string>
+    <string name="login">Se connecter</string>
+    <string name="register">Registre</string>
+    <string name="google_sign_in">Connectez-vous avec Google</string>
+    <string name="username">Nom d\'utilisateur</string>
+    <string name="firstname">Prénom</string>
+    <string name="lastname">Nom de famille</string>
+    <string name="email">e-mail</string>
+    <string name="password">Mot de passe</string>
+    <string name="passwordconfirm">Confirmez le mot de passe</string>
+    <string name="backtologin">Retour connexion</string>
+    <string name="loginlabel">E-mail</string>
+    <string name="enteryouremail">Entrer votre Email</string>
+    <string name="passwordlabel">Mot de passe</string>
+    <string name="passwordplaceholder">Tapez votre mot de passe</string>
+    <string name="successfulogin">Connexion réussie</string>
+    <string name="failedlogin">La connexion a échoué </string>
+    <string name="fill_credentials_message">Veuillez remplir les informations d\'identification</string>
+    <string name="successful_login">Connexion réussie</string>
+    <string name="searchforusers">Rechercher des utilisateurs</string>
+    <string name="back">Dos</string>
+    <string name="remove">Retirer</string>
+    <string name="add">Ajouter</string>
+    <string name="sign_in_successful">Connexion réussie!</string>
+    <string name="failed_login">La connexion a échoué! </string>
+</resources>

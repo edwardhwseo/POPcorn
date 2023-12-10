@@ -1,16 +1,40 @@
 <resources>
-    <string name="app_name">POPcorn</string>
+    <string name="app_name" translatable="false">POPcorn</string>
     <string name="placeholder_search">Search POPcorn</string>
     <string name="movies">Movies</string>
     <string name="social">Social</string>
     <string name="watchlist">Watchlist</string>
     <string name="Dashboard">Dashboard</string>
     <string name="favourite_collection">Favourite Movies</string>
-    <string name="fc1_blade_runner">Blade Runner</string>
-    <string name="fc2_meg">The Meg</string>
-    <string name="fc3_avengers">Avengers: Endgame</string>
-    <string name="fc4_dark_knight">The Dark Knight</string>
+    <string name="fc1_blade_runner" translatable="false">Blade Runner</string>
+    <string name="fc2_meg" translatable="false">The Meg</string>
+    <string name="fc3_avengers" translatable="false">Avengers: Endgame</string>
+    <string name="fc4_dark_knight" translatable="false">The Dark Knight</string>
     <string name="bottom_navigation_home">Home</string>
     <string name="bottom_navigation_profile">Profile</string>
-    <string name="web_client_id">368377427969-6qc50k5ajs20n3vr5o3g1a084u360ta3.apps.googleusercontent.com</string>
+    <string name="web_client_id" translatable="false">368377427969-6qc50k5ajs20n3vr5o3g1a084u360ta3.apps.googleusercontent.com</string>
+    <string name="login">Login</string>
+    <string name="register">Register</string>
+    <string name="google_sign_in">Sign in with Google</string>
+    <string name="username">Username</string>
+    <string name="firstname">First Name</string>
+    <string name="lastname">Last Name</string>
+    <string name="email">Email</string>
+    <string name="password">Password</string>
+    <string name="passwordconfirm">Confirm Password</string>
+    <string name="backtologin">Back to Login</string>
+    <string name="loginlabel">Email</string>
+    <string name="enteryouremail">Enter your Email</string>
+    <string name="passwordlabel">Password</string>
+    <string name="passwordplaceholder">Enter your Password</string>
+    <string name="successfulogin">Sign-in successful</string>
+    <string name="failedlogin">Login Failed</string>
+    <string name="fill_credentials_message">Please fill in the credentials</string>
+    <string name="successful_login">Login Successful</string>
+    <string name="searchforusers">Search for users</string>
+    <string name="back">Back</string>
+    <string name="remove">Remove</string>
+    <string name="add">Add</string>
+    <string name="sign_in_successful">Sign in successful!</string>
+    <string name="failed_login">"Login Failed! "</string>
 </resources>

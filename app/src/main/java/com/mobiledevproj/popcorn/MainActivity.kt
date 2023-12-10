@@ -124,6 +124,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.*
 import kotlinx.coroutines.tasks.await
+import com.mobiledevproj.popcorn.sign_in.GoogleAuthUiClient
 
 /*
 The entry point for the POPcorn application.
@@ -1066,7 +1067,7 @@ fun SocialPage(
                             )
                         }
                         Text(
-                            text = "Back",
+                            text = stringResource(id = R.string.back),
                             style = MaterialTheme.typography.bodySmall,
                             color = topBarContentColor
                         )
@@ -1090,7 +1091,7 @@ fun SocialPage(
                     TextField(
                         value = searchQuery.value,
                         onValueChange = { searchQuery.value = it },
-                        label = { Text("Search for users") },
+                        label = { Text(text = stringResource(id = R.string.searchforusers)) },
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(vertical = 16.dp)
@@ -1116,7 +1117,7 @@ fun SocialPage(
                                     onClick = { addUserAsFriend(user.id, added) },
                                     modifier = Modifier.padding(start = 8.dp)
                                 ) {
-                                    Text(if (added) "Remove" else "Add")
+                                    Text(if (added) stringResource(id = R.string.remove) else stringResource(id = R.string.add))
                                 }
                             }
                         }

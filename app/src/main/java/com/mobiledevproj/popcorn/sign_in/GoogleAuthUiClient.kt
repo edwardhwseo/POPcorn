@@ -13,6 +13,7 @@ import com.mobiledevproj.popcorn.R
 import kotlinx.coroutines.tasks.await
 import java.util.concurrent.CancellationException
 
+// Manages Google Sign-in functionality using Google Identity API and Firebase Authentication.
 class GoogleAuthUiClient(
     private val context: Context,
     private val oneTapClient: SignInClient
@@ -20,6 +21,7 @@ class GoogleAuthUiClient(
 {
     private val auth = FirebaseAuth.getInstance()
 
+    // Initiates the Google Sign-In process.
     suspend fun signIn(): IntentSender? {
         val result = try {
             oneTapClient.beginSignIn(
@@ -34,6 +36,7 @@ class GoogleAuthUiClient(
         return result?.pendingIntent?.intentSender
     }
 
+    // Handles the sign-in process with the received intent.
     suspend fun signInWithIntent(intent: Intent): SignInResult{
         val credential = oneTapClient.getSignInCredentialFromIntent(intent)
         val googleIdToken = credential.googleIdToken
@@ -59,6 +62,7 @@ class GoogleAuthUiClient(
         }
     }
 
+    // Signs out the user from the app and revokes the Google Sign-In token.
     suspend fun signOut(){
         try {
             oneTapClient.signOut().await()
@@ -70,6 +74,7 @@ class GoogleAuthUiClient(
         }
     }
 
+    // Returns the currently signed-in user.
     fun getSignedInUser(): UserData? = auth.currentUser?.run{
         UserData(
             userId = uid,
@@ -77,6 +82,7 @@ class GoogleAuthUiClient(
         )
     }
 
+// Builds a request for initiating the Google Sign-In process.
     private fun buildSignInRequest(): BeginSignInRequest {
         return BeginSignInRequest.Builder()
             .setGoogleIdTokenRequestOptions(

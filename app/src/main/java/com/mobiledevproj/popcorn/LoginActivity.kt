@@ -77,7 +77,7 @@ class LoginActivity : ComponentActivity() {
                                 if (state.isSignInSuccessful) {
                                     Toast.makeText(
                                         context,
-                                        "Sign in successful",
+                                        context.getString(R.string.sign_in_successful),
                                         Toast.LENGTH_LONG
                                     ).show()
                                     startActivity(Intent(context, MainActivity::class.java))
